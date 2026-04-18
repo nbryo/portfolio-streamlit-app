@@ -23,16 +23,16 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "frontend" / "public"
 
-# Colors
-BG_FROM = "#1e3a8a"
-BG_TO = "#3b0764"
+# Colors — monochrome professional palette (Bloomberg/TradingView inspired).
+BG_FROM = "#0a0a0a"
+BG_TO = "#1a1a1a"
 CURVE_STOPS = [
-    (0.0, "#06b6d4"),
-    (0.5, "#10b981"),
-    (1.0, "#fbbf24"),
+    (0.0, "#e5e5e5"),
+    (0.5, "#a3a3a3"),
+    (1.0, "#ffffff"),
 ]
-SCATTER_COLORS = ["#06b6d4", "#22d3ee", "#10b981", "#34d399", "#facc15", "#fbbf24"]
-STAR_COLOR = "#fbbf24"
+SCATTER_COLORS = ["#d4d4d4", "#e5e5e5", "#d4d4d4", "#e5e5e5", "#f5f5f5"]
+STAR_COLOR = "#ffffff"
 
 
 def hex_to_rgb(h: str) -> tuple[int, int, int]:
@@ -134,8 +134,8 @@ def draw_scatter(img: Image.Image, all_pts, size: int):
         x, y = all_pts[idx]
         r = base_r * s
         col = hex_to_rgb(col_hex) + (255,)
-        # White ring pops the dot off the curve.
-        d.ellipse([x - r - 1.5, y - r - 1.5, x + r + 1.5, y + r + 1.5], fill=(255, 255, 255, 230))
+        # Dark ring pops the dot off the light curve (monochrome palette).
+        d.ellipse([x - r - 1.5, y - r - 1.5, x + r + 1.5, y + r + 1.5], fill=(26, 26, 26, 255))
         d.ellipse([x - r, y - r, x + r, y + r], fill=col)
 
 

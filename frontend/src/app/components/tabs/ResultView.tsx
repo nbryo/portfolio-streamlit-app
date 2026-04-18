@@ -301,23 +301,20 @@ function Stat({
   suffix?: string;
   tone?: Tone;
 }) {
-  const borderAccent: Record<Tone, string> = {
-    pos: "border-l-4 border-l-[#ffb703]",
-    neg: "border-l-4 border-l-[#fb8500]",
-    accent: "border-l-4 border-l-[#219ebc]",
-    neutral: "border-l-4 border-l-[#6c757d]",
-  };
+  // Monochrome: one neutral border for all cards; only the drawdown value
+  // gets a red tint since it's the only metric where sign conveys meaning.
+  const border = "border-l-4 border-l-zinc-200 dark:border-l-zinc-800";
   const valueTone: Record<Tone, string> = {
-    pos: "text-emerald-600 dark:text-emerald-400",
-    neg: "text-[#fb8500] dark:text-[#fb8500]",
-    accent: "text-[#219ebc] dark:text-[#8ecae6]",
-    neutral: "text-zinc-900 dark:text-zinc-100",
+    pos: "text-zinc-900 dark:text-zinc-50",
+    neg: "text-red-600 dark:text-red-400",
+    accent: "text-zinc-900 dark:text-zinc-50",
+    neutral: "text-zinc-900 dark:text-zinc-50",
   };
   return (
     <div
       className={
         "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-5 " +
-        borderAccent[tone]
+        border
       }
     >
       <div className="text-sm text-zinc-600 dark:text-zinc-400">{label}</div>

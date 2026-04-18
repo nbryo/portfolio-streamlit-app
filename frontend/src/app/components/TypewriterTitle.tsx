@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const FULL_TITLE = "ポートフォリオを最適化したいあなたに";
+const FULL_TITLE = "ポートフォリオ最適化";
 const CHAR_MS = 60;
 
 export default function TypewriterTitle() {
@@ -33,7 +33,7 @@ export default function TypewriterTitle() {
 
   return (
     <h1
-      className="text-3xl md:text-5xl font-bold text-[#219ebc] dark:text-[#8ecae6] tracking-tight leading-tight"
+      className="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight leading-tight"
       aria-label={FULL_TITLE}
     >
       <span>{displayed}</span>
@@ -41,7 +41,7 @@ export default function TypewriterTitle() {
         <span
           aria-hidden
           className={
-            "inline-block w-[0.08em] h-[0.9em] bg-[#219ebc] dark:bg-[#8ecae6] ml-1 align-[-0.1em] " +
+            "inline-block w-[0.08em] h-[0.9em] bg-zinc-900 dark:bg-zinc-50 ml-1 align-[-0.1em] " +
             (done ? "animate-pulse" : "")
           }
         />

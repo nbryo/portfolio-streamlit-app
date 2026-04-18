@@ -27,38 +27,12 @@ const SIMULATION_OPTIONS: { value: number; label: string }[] = [
   { value: 50000, label: "50,000回（最高精度）" },
 ];
 
-// Unified blue-accent palette. Each preset keeps its hue across states; only
-// border + shadow change when selected.
-const PRESET_PALETTE: Record<
-  Preset,
-  { base: string; selected: string }
-> = {
-  sp500: {
-    base: "border-transparent bg-[#8ecae6] text-[#023047] hover:brightness-105 dark:bg-[#1e3a52] dark:text-[#8ecae6]",
-    selected:
-      "border-[#023047] bg-[#8ecae6] text-[#023047] shadow-lg dark:bg-[#1e3a52] dark:text-[#8ecae6] dark:border-[#8ecae6]",
-  },
-  nasdaq100: {
-    base: "border-transparent bg-[#219ebc] text-white hover:brightness-110 dark:bg-[#023047] dark:text-[#8ecae6]",
-    selected:
-      "border-[#023047] bg-[#219ebc] text-white shadow-lg dark:bg-[#023047] dark:text-[#8ecae6] dark:border-[#8ecae6]",
-  },
-  dow30: {
-    base: "border-transparent bg-[#cdeefb] text-[#023047] hover:brightness-[0.98] dark:bg-[#0d2438] dark:text-[#8ecae6]",
-    selected:
-      "border-[#023047] bg-[#cdeefb] text-[#023047] shadow-lg dark:bg-[#0d2438] dark:text-[#8ecae6] dark:border-[#8ecae6]",
-  },
-  fang_plus: {
-    base: "border-transparent bg-[#ffb703] text-[#023047] hover:brightness-105 dark:bg-[#5a3e00] dark:text-[#ffb703]",
-    selected:
-      "border-[#023047] bg-[#ffb703] text-[#023047] shadow-lg dark:bg-[#5a3e00] dark:text-[#ffb703] dark:border-[#ffb703]",
-  },
-  custom: {
-    base: "border-transparent bg-[#f1f3f5] text-[#495057] hover:bg-[#e9ecef] dark:bg-[#2a2d31] dark:text-[#e0e0e0]",
-    selected:
-      "border-[#023047] bg-[#f1f3f5] text-[#495057] shadow-lg dark:bg-[#2a2d31] dark:text-[#e0e0e0] dark:border-[#8ecae6]",
-  },
-};
+// Single neutral palette — all presets share the same monochrome treatment.
+// Selected inverts to solid dark-on-light (or light-on-dark) per mode.
+const PRESET_BASE =
+  "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600";
+const PRESET_SELECTED =
+  "border-zinc-900 bg-zinc-900 text-white shadow-sm dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900";
 
 interface Props {
   onResult: (data: AnalyzeResponse) => void;
@@ -138,13 +112,12 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
     >
       <section className="flex flex-col gap-3">
         <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          銘柄ユニバース
+          分析する銘柄
         </span>
         <div className="flex flex-nowrap md:flex-wrap overflow-x-auto md:overflow-visible scrollbar-hide gap-2 -mx-1 px-1 pb-1">
           {PRESET_ORDER.map((p) => {
             const meta = PRESETS[p];
             const active = p === preset;
-            const palette = PRESET_PALETTE[p];
             const countLabel = meta.count > 0 ? ` (${meta.count})` : "";
             return (
               <button
@@ -153,8 +126,8 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
                 onClick={() => setPreset(p)}
                 aria-pressed={active}
                 className={
-                  "shrink-0 min-w-[108px] px-3.5 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-150 " +
-                  (active ? palette.selected : palette.base)
+                  "shrink-0 min-w-[108px] px-3.5 py-2 text-sm font-medium rounded-lg border transition-colors duration-150 " +
+                  (active ? PRESET_SELECTED : PRESET_BASE)
                 }
               >
                 {meta.label}
@@ -166,14 +139,9 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
       </section>
 
       <section className="flex flex-col gap-2">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {isCustomOnly ? "銘柄（必須）" : "追加銘柄（任意）"}
-          </span>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            日本語・英語・ティッカーで検索
-          </span>
-        </div>
+        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          {isCustomOnly ? "銘柄（必須）" : "追加で分析したい銘柄"}
+        </span>
         <TickerSearchBar onPick={(t) => addCustomTicker(t)} />
         {customTickers.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1">
@@ -231,10 +199,10 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
         <div className="flex items-baseline justify-between">
           <span className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
             <Shield className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
-            ヘッジ資産（任意）
+            分散投資用の資産（任意）
           </span>
           <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            SMLフィルタ対象外 — 無条件で組み込まれます
+            株価と連動しにくい資産 — 無条件で組み込まれます
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -263,10 +231,10 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
         <div className="flex items-baseline justify-between">
           <span className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
             <BarChart3 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
-            ベンチマーク（3指数）
+            比較する指数
           </span>
           <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            3指数の平均で SML を引きます
+            3指数の平均を基準線にします
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -293,7 +261,7 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center justify-center gap-2 bg-gradient-to-br from-[#219ebc] to-[#023047] hover:brightness-110 disabled:bg-none disabled:bg-zinc-300 dark:disabled:bg-zinc-700 text-white rounded-lg px-8 py-3 text-sm font-medium shadow-lg shadow-[#023047]/20 transition-all duration-150"
+          className="inline-flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 disabled:bg-zinc-300 dark:disabled:bg-zinc-700 dark:disabled:text-zinc-400 rounded-lg px-8 py-3 text-sm font-medium shadow-sm transition-colors duration-150"
         >
           {loading ? <Spinner /> : <Play className="w-4 h-4" aria-hidden />}
           {loading ? "分析中..." : "分析を実行"}
