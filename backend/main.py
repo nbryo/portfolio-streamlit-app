@@ -12,6 +12,7 @@ from core.data import fetch_prices_and_returns
 from core.portfolio import run_monte_carlo
 from core.presets import get_hedge_tickers, get_preset_tickers
 from core.sml import select_tickers_above_sml
+from core.ticker_master import search_tickers
 from models import AnalyzeRequest, BacktestForRequest
 
 load_dotenv()
@@ -42,6 +43,12 @@ app.add_middleware(
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/search_ticker")
+@app.get("/api/search_ticker")
+def search_ticker(q: str = "") -> dict:
+    return {"results": search_tickers(q, limit=10)}
 
 
 @app.post("/backtest_for")
