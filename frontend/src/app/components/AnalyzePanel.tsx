@@ -39,8 +39,12 @@ export default function AnalyzePanel() {
             <Stat label="Max Drawdown" value={pct(result.optimal.max_drawdown)} tone="neg" />
           </section>
 
-          <ChartCard title="Efficient Frontier" hint="Max-Sharpe marked ★">
-            <EfficientFrontierChart scatter={result.scatter} optimal={result.optimal} />
+          <ChartCard title="Efficient Frontier" hint="Max-Sharpe ★ · SML dashed">
+            <EfficientFrontierChart
+              scatter={result.scatter}
+              optimal={result.optimal}
+              benchmarksInfo={result.benchmarks_info}
+            />
           </ChartCard>
 
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
