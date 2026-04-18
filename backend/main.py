@@ -186,12 +186,39 @@ def analyze(req: AnalyzeRequest) -> dict:
             detail="No tickers available for optimization after SML filter.",
         )
 
-    mc = run_monte_carlo(returns, selected, req.n_simulations)
+    # Monte Carlo needs a consistent covariance matrix, so restrict it to the
+    # common period where every selected ticker has data.
+    returns_for_mc = returns[selected].dropna(how="any")
+    if returns_for_mc.shape[0] < 5:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "選ばれた銘柄の共通データ期間が短すぎます "
+                f"({returns_for_mc.shape[0]} 日)。より長い期間を選ぶか、"
+                "新しい銘柄（IBIT など）を外してお試しください。"
+            ),
+        )
+    logger.info(
+        "MC window: %d days (%s → %s)",
+        returns_for_mc.shape[0],
+        returns_for_mc.index[0].strftime("%Y-%m-%d"),
+        returns_for_mc.index[-1].strftime("%Y-%m-%d"),
+    )
+
+    mc = run_monte_carlo(returns_for_mc, selected, req.n_simulations)
     sharpe_arr = mc["sharpe"]
     optimal_idx = int(np.argmax(sharpe_arr))
     opt_weights = {t: float(w) for t, w in zip(selected, mc["weights"][optimal_idx])}
 
+    # Backtest keeps per-ticker NaN so short-history tickers (IBIT, etc.) don't
+    # truncate the curve — backtest_fixed_weights renormalizes weights per day.
     cumulative = backtest_fixed_weights(returns, selected, opt_weights)
+    logger.info(
+        "Backtest window: %d days (%s → %s)",
+        len(cumulative),
+        cumulative.index[0].strftime("%Y-%m-%d"),
+        cumulative.index[-1].strftime("%Y-%m-%d"),
+    )
 
     elapsed = time.perf_counter() - t_start
     logger.info("analyze complete in %.1fs", elapsed)
