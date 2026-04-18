@@ -343,13 +343,13 @@ function ChartCard({
 }) {
   return (
     <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
-      <header className="flex items-baseline justify-between gap-3 px-5 py-3 border-b border-zinc-100 dark:border-zinc-800">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+      <header className="flex items-baseline justify-between gap-3 px-5 py-3 border-b border-zinc-100 dark:border-zinc-800 overflow-hidden">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
           {icon}
           {title}
         </h3>
         {hint && (
-          <span className="text-xs text-zinc-500 dark:text-zinc-400 text-right">
+          <span className="hidden sm:inline text-xs text-zinc-500 dark:text-zinc-400 text-right truncate">
             {hint}
           </span>
         )}

@@ -118,7 +118,8 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
           {PRESET_ORDER.map((p) => {
             const meta = PRESETS[p];
             const active = p === preset;
-            const countLabel = meta.count > 0 ? ` (${meta.count})` : "";
+            const countLabel =
+              meta.count > 0 ? `（${meta.count}銘柄）` : "";
             return (
               <button
                 key={p}
@@ -126,7 +127,7 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
                 onClick={() => setPreset(p)}
                 aria-pressed={active}
                 className={
-                  "shrink-0 min-w-[108px] px-3.5 py-2 text-sm font-medium rounded-lg border transition-colors duration-150 " +
+                  "shrink-0 whitespace-nowrap px-3.5 py-2 text-sm font-medium rounded-lg border transition-colors duration-150 " +
                   (active ? PRESET_SELECTED : PRESET_BASE)
                 }
               >
@@ -205,7 +206,7 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
             株価と連動しにくい資産 — 無条件で組み込まれます
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {HEDGE_ASSETS.map((h) => {
             const checked = hedgeAssets.includes(h.key);
             return (
@@ -261,7 +262,7 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 disabled:bg-zinc-300 dark:disabled:bg-zinc-700 dark:disabled:text-zinc-400 rounded-lg px-8 py-3 text-sm font-medium shadow-sm transition-colors duration-150"
+          className="inline-flex items-center justify-center gap-2 bg-gradient-to-b from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 active:from-blue-800 active:to-blue-900 dark:from-blue-500 dark:to-blue-700 dark:hover:from-blue-600 dark:hover:to-blue-800 text-white rounded-lg px-8 py-3 text-sm font-medium border-t border-white/20 shadow-lg hover:shadow-xl active:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150"
         >
           {loading ? <Spinner /> : <Play className="w-4 h-4" aria-hidden />}
           {loading ? "分析中..." : "分析を実行"}
@@ -340,7 +341,7 @@ function TickerSearchBar({ onPick }: { onPick: (ticker: string) => void }) {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="アップル、AAPL、ゴールド…"
+          placeholder="銘柄名を入力（例: アップル / AAPL / ゴールド）"
           className="w-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600"
         />
       </div>
@@ -456,8 +457,10 @@ function HedgeCheckbox({
           </svg>
         )}
       </span>
-      <span className="flex-1">{label}</span>
-      <span className="num text-xs text-zinc-500 dark:text-zinc-400">{ticker}</span>
+      <span className="flex-1 whitespace-nowrap">{label}</span>
+      <span className="num text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+        {ticker}
+      </span>
     </label>
   );
 }
