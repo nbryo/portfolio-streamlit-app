@@ -19,10 +19,12 @@ const PERIOD_OPTIONS: Period[] = ["1mo", "3mo", "6mo", "1y", "2y", "3y", "4y", "
 const HEAVY_PRESETS: Preset[] = ["sp500", "nasdaq100"];
 
 interface Props {
-  onResult?: (data: AnalyzeResponse) => void;
+  onResult: (data: AnalyzeResponse) => void;
+  loading: boolean;
+  setLoading: (loading: boolean) => void;
 }
 
-export default function AnalyzeForm({ onResult }: Props) {
+export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
   const [preset, setPreset] = useState<Preset>("fang_plus");
   const [customInput, setCustomInput] = useState("");
   const [hedgeAssets, setHedgeAssets] = useState<HedgeAssetKey[]>([]);
@@ -32,7 +34,6 @@ export default function AnalyzeForm({ onResult }: Props) {
   const [bench2, setBench2] = useState("QQQ");
   const [bench3, setBench3] = useState("^NYFANG");
 
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const customTickers = useMemo(
@@ -78,7 +79,7 @@ export default function AnalyzeForm({ onResult }: Props) {
 
     try {
       const data = await analyzePortfolio(req);
-      onResult?.(data);
+      onResult(data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
