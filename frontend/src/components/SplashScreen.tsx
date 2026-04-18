@@ -33,7 +33,7 @@ export default function SplashScreen() {
         (fading ? "opacity-0 pointer-events-none" : "opacity-100")
       }
       style={{
-        background: "linear-gradient(135deg, #023047 0%, #219ebc 100%)",
+        background: "linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)",
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}

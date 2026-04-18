@@ -16,8 +16,8 @@ export default function HomeTab({ onResult, loading, setLoading }: Props) {
       <div className="max-w-6xl mx-auto flex flex-col gap-10">
         <section>
           <TypewriterTitle />
-          <p className="text-base md:text-lg text-zinc-600 dark:text-zinc-400 font-normal mt-3 leading-relaxed">
-            今までのリスクとリターンの最適配分を計算するツールです
+          <p className="text-base md:text-lg text-zinc-600 dark:text-zinc-400 font-light mt-3 leading-relaxed">
+            最適な配分を、数秒で。
           </p>
         </section>
         <AnalyzeForm
