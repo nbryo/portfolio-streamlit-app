@@ -5,6 +5,7 @@ import { BarChart3, Play, Settings, Shield } from "lucide-react";
 import { analyzePortfolio } from "@/lib/api";
 import {
   HEDGE_ASSETS,
+  PERIOD_LABELS,
   PRESETS,
   PRESET_ORDER,
   type AnalyzeRequest,
@@ -169,7 +170,7 @@ export default function AnalyzeForm({ onResult }: Props) {
           >
             {PERIOD_OPTIONS.map((p) => (
               <option key={p} value={p}>
-                {p}
+                {PERIOD_LABELS[p]}
               </option>
             ))}
           </select>

@@ -1,5 +1,16 @@
 export type Period = "1mo" | "3mo" | "6mo" | "1y" | "2y" | "3y" | "4y" | "5y";
 
+export const PERIOD_LABELS: Record<Period, string> = {
+  "1mo": "1ヶ月",
+  "3mo": "3ヶ月",
+  "6mo": "6ヶ月",
+  "1y": "1年",
+  "2y": "2年",
+  "3y": "3年",
+  "4y": "4年",
+  "5y": "5年",
+};
+
 export type Preset = "sp500" | "nasdaq100" | "dow30" | "fang_plus" | "custom";
 
 export interface PresetMeta {

@@ -50,7 +50,7 @@ export default function EfficientFrontierChart({
       x: scatter.risk,
       y: scatter.return,
       marker: {
-        size: 5,
+        size: 6,
         color: scatter.sharpe,
         colorscale: "Viridis",
         colorbar: {
@@ -59,7 +59,7 @@ export default function EfficientFrontierChart({
           outlinecolor: grid,
           bgcolor: bg,
         },
-        opacity: 0.75,
+        opacity: 0.8,
       },
       name: "ポートフォリオ候補",
       hovertemplate:
@@ -139,15 +139,23 @@ export default function EfficientFrontierChart({
 
   function handleClick(e: Readonly<PlotMouseEvent>) {
     if (!onSelect) return;
-    const pt = e.points?.[0];
+    const pts = e.points;
+    if (!pts || pts.length === 0) return;
+    const pt = pts.find((p) => p.curveNumber === 0);
     if (!pt) return;
-    if (pt.curveNumber !== 0) return;
-    if (typeof pt.pointNumber !== "number") return;
-    onSelect(pt.pointNumber);
+    const asAny = pt as { pointNumber?: number; pointIndex?: number };
+    const idx =
+      typeof asAny.pointNumber === "number"
+        ? asAny.pointNumber
+        : typeof asAny.pointIndex === "number"
+          ? asAny.pointIndex
+          : null;
+    if (idx === null) return;
+    onSelect(idx);
   }
 
   return (
-    <div className="h-[360px] md:h-[460px] w-full cursor-pointer">
+    <div className="h-[400px] md:h-[520px] w-full cursor-pointer">
       <PlotlyChart
         data={traces as Plotly.Data[]}
         layout={{
@@ -170,21 +178,27 @@ export default function EfficientFrontierChart({
             rangemode: "tozero",
           },
           autosize: true,
-          margin: { l: 70, r: 30, t: 20, b: 50 },
+          margin: { l: 70, r: 30, t: 20, b: 90 },
           paper_bgcolor: bg,
           plot_bgcolor: bg,
           font: { family: "ui-sans-serif, system-ui, sans-serif", color: text },
           showlegend: true,
           legend: {
-            x: 0.01,
-            y: 0.99,
-            bgcolor: dark ? "rgba(24,24,27,0.8)" : "rgba(255,255,255,0.8)",
-            bordercolor: grid,
-            borderwidth: 1,
+            orientation: "h",
+            x: 0,
+            y: -0.18,
+            xanchor: "left",
+            yanchor: "top",
+            bgcolor: "rgba(0,0,0,0)",
             font: { color: text, size: 11 },
           },
+          hovermode: "closest",
         }}
-        config={{ displayModeBar: false, responsive: true }}
+        config={{
+          displayModeBar: false,
+          responsive: true,
+          doubleClick: "reset",
+        }}
         style={{ width: "100%", height: "100%" }}
         useResizeHandler
         onClick={handleClick}

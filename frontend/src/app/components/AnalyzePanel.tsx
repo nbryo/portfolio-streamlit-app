@@ -14,6 +14,7 @@ import BacktestChart from "./charts/BacktestChart";
 import WeightsPieChart from "./charts/WeightsPieChart";
 import { backtestFor } from "@/lib/api";
 import {
+  PERIOD_LABELS,
   PRESETS,
   type AnalyzeResponse,
   type BacktestData,
@@ -111,7 +112,7 @@ export default function AnalyzePanel() {
           <SectionTitle
             icon={<Filter className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />}
             label="銘柄選別"
-            right={`${PRESETS[result.metadata.preset].label} · ${result.metadata.period} · ${result.metadata.n_simulations.toLocaleString()}回 · ${result.metadata.elapsed_seconds.toFixed(1)}秒`}
+            right={`${PRESETS[result.metadata.preset].label} · ${PERIOD_LABELS[result.metadata.period]} · ${result.metadata.n_simulations.toLocaleString()}回 · ${result.metadata.elapsed_seconds.toFixed(1)}秒`}
           />
 
           <SelectionStats result={result} />
