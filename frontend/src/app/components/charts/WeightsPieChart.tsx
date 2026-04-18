@@ -44,34 +44,36 @@ export default function WeightsPieChart({ weights }: Props) {
   const values = entries.map(([, w]) => w);
 
   return (
-    <PlotlyChart
-      data={[
-        {
-          type: "pie",
-          labels,
-          values,
-          hole: 0.5,
-          marker: {
-            colors: palette.slice(0, labels.length),
-            line: { color: bg, width: 2 },
+    <div className="h-[280px] md:h-[340px] w-full">
+      <PlotlyChart
+        data={[
+          {
+            type: "pie",
+            labels,
+            values,
+            hole: 0.5,
+            marker: {
+              colors: palette.slice(0, labels.length),
+              line: { color: bg, width: 2 },
+            },
+            textinfo: "label+percent",
+            textfont: { size: 12, color: text },
+            hovertemplate: "%{label}<br>比率: %{percent}<extra></extra>",
+            sort: false,
           },
-          textinfo: "label+percent",
-          textfont: { size: 12, color: text },
-          hovertemplate: "%{label}<br>Weight: %{percent}<extra></extra>",
-          sort: false,
-        },
-      ]}
-      layout={{
-        autosize: true,
-        margin: { l: 10, r: 10, t: 20, b: 10 },
-        paper_bgcolor: bg,
-        plot_bgcolor: bg,
-        font: { family: "ui-sans-serif, system-ui, sans-serif", color: text },
-        showlegend: false,
-      }}
-      config={{ displayModeBar: false, responsive: true }}
-      style={{ width: "100%", height: "340px" }}
-      useResizeHandler
-    />
+        ]}
+        layout={{
+          autosize: true,
+          margin: { l: 10, r: 10, t: 20, b: 10 },
+          paper_bgcolor: bg,
+          plot_bgcolor: bg,
+          font: { family: "ui-sans-serif, system-ui, sans-serif", color: text },
+          showlegend: false,
+        }}
+        config={{ displayModeBar: false, responsive: true }}
+        style={{ width: "100%", height: "100%" }}
+        useResizeHandler
+      />
+    </div>
   );
 }

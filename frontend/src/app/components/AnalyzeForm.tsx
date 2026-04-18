@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BarChart3, Play, Settings, Shield } from "lucide-react";
 import { analyzePortfolio } from "@/lib/api";
 import {
   HEDGE_ASSETS,
@@ -15,6 +16,14 @@ import {
 
 const PERIOD_OPTIONS: Period[] = ["1mo", "3mo", "6mo", "1y", "2y", "3y", "4y", "5y"];
 const HEAVY_PRESETS: Preset[] = ["sp500", "nasdaq100"];
+
+const PRESET_EMOJI: Record<Preset, string> = {
+  sp500: "📊",
+  nasdaq100: "💻",
+  dow30: "🏛️",
+  fang_plus: "🚀",
+  custom: "✏️",
+};
 
 interface Props {
   onResult?: (data: AnalyzeResponse) => void;
@@ -51,7 +60,7 @@ export default function AnalyzeForm({ onResult }: Props) {
     setError(null);
 
     if (isCustomOnly && customTickers.length === 0) {
-      setError("カスタムのみを選んだ場合は、銘柄を1つ以上入力してください。");
+      setError("「カスタムのみ」選択時は銘柄を1つ以上入力してください。");
       return;
     }
 
@@ -90,14 +99,15 @@ export default function AnalyzeForm({ onResult }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md p-6 md:p-8 flex flex-col gap-7"
+      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-5 md:p-8 flex flex-col gap-7"
     >
       <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100">
-          Configuration
+        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100">
+          <Settings className="w-4 h-4 text-blue-500" aria-hidden />
+          設定
         </h2>
         <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-          Inputs
+          入力
         </span>
       </div>
 
@@ -121,7 +131,7 @@ export default function AnalyzeForm({ onResult }: Props) {
             )}
           </span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-nowrap overflow-x-auto scrollbar-hide gap-2 -mx-1 px-1 pb-1">
           {PRESET_ORDER.map((p) => {
             const meta = PRESETS[p];
             const active = p === preset;
@@ -133,14 +143,15 @@ export default function AnalyzeForm({ onResult }: Props) {
                 onClick={() => setPreset(p)}
                 aria-pressed={active}
                 className={
-                  "px-3 py-1.5 text-xs font-medium uppercase tracking-wider rounded border transition-colors " +
+                  "shrink-0 min-w-[110px] px-3 py-2 text-xs font-medium rounded-lg border transition-all duration-200 " +
                   (active
-                    ? "bg-blue-700 border-blue-700 text-white hover:bg-blue-800 dark:bg-blue-600 dark:border-blue-600 dark:hover:bg-blue-500"
-                    : "bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-500")
+                    ? "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-600 text-white shadow-md dark:from-blue-500 dark:to-blue-600 dark:border-blue-400"
+                    : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700")
                 }
               >
+                <span className="mr-1.5">{PRESET_EMOJI[p]}</span>
                 {meta.label}
-                {countLabel}
+                <span className="num">{countLabel}</span>
               </button>
             );
           })}
@@ -160,16 +171,16 @@ export default function AnalyzeForm({ onResult }: Props) {
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
           placeholder={isCustomOnly ? "AAPL, MSFT, NVDA" : "例: TLT, GLD"}
-          className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
         />
       </Field>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <Field label="Period">
+        <Field label="期間">
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as Period)}
-            className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
           >
             {PERIOD_OPTIONS.map((p) => (
               <option key={p} value={p}>
@@ -179,7 +190,7 @@ export default function AnalyzeForm({ onResult }: Props) {
           </select>
         </Field>
 
-        <Field label="Simulations">
+        <Field label="シミュレーション回数">
           <input
             type="number"
             min={100}
@@ -187,21 +198,22 @@ export default function AnalyzeForm({ onResult }: Props) {
             step={100}
             value={nSimulations}
             onChange={(e) => setNSimulations(Number(e.target.value))}
-            className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
           />
         </Field>
       </div>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium">
+          <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium">
+            <Shield className="w-4 h-4 text-purple-500" aria-hidden />
             ヘッジ資産（任意）
           </span>
           <span className="text-[10px] text-zinc-500 dark:text-zinc-500">
-            SMLフィルタ対象外 — 選んだものは分散効果のため無条件で組み込まれます
+            SMLフィルタ対象外 — 分散効果のため無条件で組み込まれます
           </span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {HEDGE_ASSETS.map((h) => {
             const checked = hedgeAssets.includes(h.key);
             return (
@@ -225,7 +237,8 @@ export default function AnalyzeForm({ onResult }: Props) {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium">
+          <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium">
+            <BarChart3 className="w-4 h-4 text-blue-500" aria-hidden />
             ベンチマーク（3指数）
           </span>
           <span className="text-[10px] text-zinc-500 dark:text-zinc-500">
@@ -249,26 +262,26 @@ export default function AnalyzeForm({ onResult }: Props) {
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           {loading
             ? isHeavy
-              ? `分析中... ${presetMeta.label} は最大30秒程度かかります。`
-              : "分析中..."
+              ? `計算しています... ${presetMeta.label}（${presetMeta.count}銘柄）は30秒ほどかかります ☕`
+              : "計算しています..."
             : isHeavy
-              ? `${presetMeta.label} は${presetMeta.count}銘柄を処理するため、最大30秒ほどかかります。`
-              : "実行すると結果が下に表示されます。"}
+              ? `${presetMeta.label}（${presetMeta.count}銘柄）は計算に30秒ほどかかります ☕`
+              : "下に結果が表示されます"}
         </p>
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 disabled:bg-zinc-400 dark:disabled:bg-zinc-700 text-white rounded px-6 py-2 text-sm font-medium uppercase tracking-wider transition-colors"
+          className="flex items-center justify-center gap-2 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 hover:scale-[1.02] active:scale-100 disabled:from-zinc-300 disabled:to-zinc-400 dark:disabled:from-zinc-700 dark:disabled:to-zinc-800 disabled:hover:scale-100 text-white rounded-lg px-6 py-2.5 text-sm font-medium shadow-lg shadow-blue-500/20 transition-all duration-200"
         >
-          {loading && <Spinner />}
-          {loading ? "Running…" : "Run Analysis"}
+          {loading ? <Spinner /> : <Play className="w-4 h-4" aria-hidden />}
+          {loading ? "分析中..." : "分析を実行"}
         </button>
       </div>
 
       {error && (
         <div
           role="alert"
-          className="border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 px-3 py-2 rounded text-sm"
+          className="border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 px-3 py-2 rounded-lg text-sm"
         >
           {error}
         </div>
@@ -315,10 +328,10 @@ function HedgeCheckbox({
   return (
     <label
       className={
-        "flex items-center gap-3 px-3 py-2 rounded border text-sm cursor-pointer transition-colors select-none " +
+        "flex items-center gap-3 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors select-none " +
         (checked
           ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-100"
-          : "border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-500")
+          : "border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-700 dark:text-zinc-300 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/50 dark:hover:bg-blue-950/20")
       }
     >
       <input
@@ -330,9 +343,9 @@ function HedgeCheckbox({
       <span
         aria-hidden
         className={
-          "flex items-center justify-center h-4 w-4 rounded border shrink-0 " +
+          "flex items-center justify-center h-4 w-4 rounded border shrink-0 transition-colors " +
           (checked
-            ? "bg-blue-600 border-blue-600 dark:bg-blue-500 dark:border-blue-500"
+            ? "bg-blue-500 border-blue-500 dark:bg-blue-400 dark:border-blue-400"
             : "bg-white dark:bg-zinc-950 border-zinc-300 dark:border-zinc-600")
         }
       >
@@ -370,7 +383,7 @@ function BenchmarkInput({
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+      className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
     />
   );
 }

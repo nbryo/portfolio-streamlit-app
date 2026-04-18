@@ -39,122 +39,124 @@ export default function EfficientFrontierChart({
   const lineRight = maxRisk * 1.05;
 
   return (
-    <PlotlyChart
-      data={[
-        {
-          type: "scattergl",
-          mode: "markers",
-          x: scatter.risk,
-          y: scatter.return,
-          marker: {
-            size: 5,
-            color: scatter.sharpe,
-            colorscale: "Viridis",
-            colorbar: {
-              title: { text: "Sharpe", font: { color: text } },
-              tickfont: { color: text },
-              outlinecolor: grid,
-              bgcolor: bg,
+    <div className="h-[360px] md:h-[460px] w-full">
+      <PlotlyChart
+        data={[
+          {
+            type: "scattergl",
+            mode: "markers",
+            x: scatter.risk,
+            y: scatter.return,
+            marker: {
+              size: 5,
+              color: scatter.sharpe,
+              colorscale: "Viridis",
+              colorbar: {
+                title: { text: "シャープ比", font: { color: text } },
+                tickfont: { color: text },
+                outlinecolor: grid,
+                bgcolor: bg,
+              },
+              opacity: 0.75,
             },
-            opacity: 0.75,
+            name: "ポートフォリオ候補",
+            hovertemplate:
+              "リスク: %{x:.2%}<br>リターン: %{y:.2%}<br>シャープ比: %{marker.color:.3f}<extra></extra>",
           },
-          name: "Portfolios",
-          hovertemplate:
-            "Risk: %{x:.2%}<br>Return: %{y:.2%}<br>Sharpe: %{marker.color:.3f}<extra></extra>",
-        },
-        {
-          type: "scatter",
-          mode: "markers",
-          x: [optimal.risk],
-          y: [optimal.return],
-          marker: {
-            size: 16,
-            color: "#dc2626",
-            symbol: "star",
-            line: { width: 2, color: bg },
+          {
+            type: "scatter",
+            mode: "markers",
+            x: [optimal.risk],
+            y: [optimal.return],
+            marker: {
+              size: 16,
+              color: "#dc2626",
+              symbol: "star",
+              line: { width: 2, color: bg },
+            },
+            name: "最大シャープ比",
+            hovertemplate:
+              "最適<br>リスク: %{x:.2%}<br>リターン: %{y:.2%}<extra></extra>",
           },
-          name: "Max Sharpe",
-          hovertemplate:
-            "Optimal<br>Risk: %{x:.2%}<br>Return: %{y:.2%}<extra></extra>",
-        },
-        {
-          type: "scatter",
-          mode: "lines",
-          x: [0, lineRight],
-          y: [0, benchmarksInfo.sml_slope * lineRight],
-          line: { color: smlColor, width: 2, dash: "dash" },
-          name: "SML",
-          hoverinfo: "skip",
-        },
-        {
-          type: "scatter",
-          mode: "markers",
-          x: benchRisks,
-          y: benchReturns,
-          text: benchmarksInfo.individual.map((b) => b.ticker),
-          marker: {
-            size: 12,
-            color: "#71717a",
-            symbol: "diamond",
-            line: { width: 1, color: bg },
+          {
+            type: "scatter",
+            mode: "lines",
+            x: [0, lineRight],
+            y: [0, benchmarksInfo.sml_slope * lineRight],
+            line: { color: smlColor, width: 2, dash: "dash" },
+            name: "SML",
+            hoverinfo: "skip",
           },
-          name: "Benchmarks",
-          hovertemplate:
-            "%{text}<br>Risk: %{x:.2%}<br>Return: %{y:.2%}<extra></extra>",
-        },
-        {
-          type: "scatter",
-          mode: "markers",
-          x: [benchmarksInfo.mean.risk],
-          y: [benchmarksInfo.mean.return],
-          marker: {
-            size: 14,
-            color: meanColor,
-            symbol: "triangle-up",
-            line: { width: 2, color: bg },
+          {
+            type: "scatter",
+            mode: "markers",
+            x: benchRisks,
+            y: benchReturns,
+            text: benchmarksInfo.individual.map((b) => b.ticker),
+            marker: {
+              size: 12,
+              color: "#71717a",
+              symbol: "diamond",
+              line: { width: 1, color: bg },
+            },
+            name: "ベンチマーク",
+            hovertemplate:
+              "%{text}<br>リスク: %{x:.2%}<br>リターン: %{y:.2%}<extra></extra>",
           },
-          name: "Bench Mean",
-          hovertemplate:
-            "Benchmark Mean<br>Risk: %{x:.2%}<br>Return: %{y:.2%}<extra></extra>",
-        },
-      ]}
-      layout={{
-        xaxis: {
-          title: { text: "Risk (σ, annualized)", font: { color: axis, size: 11 } },
-          tickformat: ".0%",
-          gridcolor: grid,
-          zerolinecolor: grid,
-          tickfont: { color: axis, size: 10 },
-          linecolor: grid,
-          rangemode: "tozero",
-        },
-        yaxis: {
-          title: { text: "Return (annualized)", font: { color: axis, size: 11 } },
-          tickformat: ".0%",
-          gridcolor: grid,
-          zerolinecolor: grid,
-          tickfont: { color: axis, size: 10 },
-          linecolor: grid,
-          rangemode: "tozero",
-        },
-        autosize: true,
-        margin: { l: 70, r: 30, t: 20, b: 50 },
-        paper_bgcolor: bg,
-        plot_bgcolor: bg,
-        font: { family: "ui-sans-serif, system-ui, sans-serif", color: text },
-        showlegend: true,
-        legend: {
-          x: 0.01,
-          y: 0.99,
-          bgcolor: dark ? "rgba(17,17,19,0.6)" : "rgba(255,255,255,0.6)",
-          bordercolor: grid,
-          borderwidth: 1,
-          font: { color: text, size: 11 },
-        },
-      }}
-      config={{ displayModeBar: false, responsive: true }}
-      style={{ width: "100%", height: "460px" }}
-      useResizeHandler
-    />
+          {
+            type: "scatter",
+            mode: "markers",
+            x: [benchmarksInfo.mean.risk],
+            y: [benchmarksInfo.mean.return],
+            marker: {
+              size: 14,
+              color: meanColor,
+              symbol: "triangle-up",
+              line: { width: 2, color: bg },
+            },
+            name: "ベンチマーク平均",
+            hovertemplate:
+              "ベンチマーク平均<br>リスク: %{x:.2%}<br>リターン: %{y:.2%}<extra></extra>",
+          },
+        ]}
+        layout={{
+          xaxis: {
+            title: { text: "リスク（年率）", font: { color: axis, size: 11 } },
+            tickformat: ".0%",
+            gridcolor: grid,
+            zerolinecolor: grid,
+            tickfont: { color: axis, size: 10 },
+            linecolor: grid,
+            rangemode: "tozero",
+          },
+          yaxis: {
+            title: { text: "リターン（年率）", font: { color: axis, size: 11 } },
+            tickformat: ".0%",
+            gridcolor: grid,
+            zerolinecolor: grid,
+            tickfont: { color: axis, size: 10 },
+            linecolor: grid,
+            rangemode: "tozero",
+          },
+          autosize: true,
+          margin: { l: 70, r: 30, t: 20, b: 50 },
+          paper_bgcolor: bg,
+          plot_bgcolor: bg,
+          font: { family: "ui-sans-serif, system-ui, sans-serif", color: text },
+          showlegend: true,
+          legend: {
+            x: 0.01,
+            y: 0.99,
+            bgcolor: dark ? "rgba(17,17,19,0.6)" : "rgba(255,255,255,0.6)",
+            bordercolor: grid,
+            borderwidth: 1,
+            font: { color: text, size: 11 },
+          },
+        }}
+        config={{ displayModeBar: false, responsive: true }}
+        style={{ width: "100%", height: "100%" }}
+        useResizeHandler
+      />
+    </div>
   );
 }
