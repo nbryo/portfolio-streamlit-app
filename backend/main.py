@@ -39,10 +39,12 @@ app.add_middleware(
 
 
 @app.get("/health")
+@app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
 
 
+@app.post("/backtest_for")
 @app.post("/api/backtest_for")
 def backtest_for(req: BacktestForRequest) -> dict:
     if len(req.tickers) != len(req.weights):
@@ -99,6 +101,7 @@ def _resolve_equity_universe(preset: str, custom: list[str]) -> list[str]:
     return combined
 
 
+@app.post("/analyze")
 @app.post("/api/analyze")
 def analyze(req: AnalyzeRequest) -> dict:
     t_start = time.perf_counter()
