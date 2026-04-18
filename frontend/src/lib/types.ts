@@ -23,9 +23,35 @@ export const PRESET_ORDER: Preset[] = [
   "custom",
 ];
 
+export type HedgeAssetKey =
+  | "gold"
+  | "silver"
+  | "crypto"
+  | "bonds_long"
+  | "bonds_mid"
+  | "reit"
+  | "commodity";
+
+export interface HedgeAssetMeta {
+  key: HedgeAssetKey;
+  ticker: string;
+  label: string;
+}
+
+export const HEDGE_ASSETS: HedgeAssetMeta[] = [
+  { key: "gold", ticker: "GLD", label: "金" },
+  { key: "silver", ticker: "SLV", label: "銀" },
+  { key: "crypto", ticker: "IBIT", label: "暗号資産（BTC ETF）" },
+  { key: "bonds_long", ticker: "TLT", label: "長期米国債" },
+  { key: "bonds_mid", ticker: "IEF", label: "中期米国債" },
+  { key: "reit", ticker: "VNQ", label: "米国REIT" },
+  { key: "commodity", ticker: "DBC", label: "コモディティ総合" },
+];
+
 export interface AnalyzeRequest {
   preset: Preset;
   custom_tickers: string[];
+  hedge_assets: HedgeAssetKey[];
   period: Period;
   n_simulations: number;
   benchmarks: string[];
@@ -68,6 +94,7 @@ export interface AnalyzeResponse {
   scatter: ScatterData;
   optimal: OptimalPortfolio;
   filtered_tickers: string[];
+  hedge_tickers: string[];
   universe_size: number;
   filtered_count: number;
   benchmarks_info: BenchmarksInfo;

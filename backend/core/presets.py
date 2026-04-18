@@ -45,6 +45,33 @@ FANG_PLUS: list[str] = [
     "MSFT", "NVDA", "TSLA", "AVGO", "NOW",
 ]
 
+# Hedge / non-equity assets that bypass SML filtering and are always included
+# when requested. Keys match the frontend HedgeAssetKey union.
+HEDGE_ASSETS: dict[str, dict[str, str]] = {
+    "gold":       {"ticker": "GLD",  "label": "金（GLD）"},
+    "silver":     {"ticker": "SLV",  "label": "銀（SLV）"},
+    "crypto":     {"ticker": "IBIT", "label": "暗号資産（IBIT）"},
+    "bonds_long": {"ticker": "TLT",  "label": "長期米国債（TLT）"},
+    "bonds_mid":  {"ticker": "IEF",  "label": "中期米国債（IEF）"},
+    "reit":       {"ticker": "VNQ",  "label": "米国REIT（VNQ）"},
+    "commodity":  {"ticker": "DBC",  "label": "コモディティ総合（DBC）"},
+}
+
+
+def get_hedge_tickers(keys: list[str]) -> list[str]:
+    """Map hedge-asset keys to yfinance tickers. Unknown keys raise ValueError."""
+    unknown = [k for k in keys if k not in HEDGE_ASSETS]
+    if unknown:
+        raise ValueError(f"Unknown hedge asset keys: {', '.join(unknown)}")
+    seen: set[str] = set()
+    tickers: list[str] = []
+    for k in keys:
+        t = HEDGE_ASSETS[k]["ticker"]
+        if t not in seen:
+            seen.add(t)
+            tickers.append(t)
+    return tickers
+
 # Dow Jones Industrial Average (30 components) as of 2026-04.
 # Latest change: 2024-11-08 (NVDA replaced INTC, SHW replaced DOW).
 DOW30: list[str] = [

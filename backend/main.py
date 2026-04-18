@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.backtest import backtest_fixed_weights
 from core.data import fetch_prices_and_returns
 from core.portfolio import run_monte_carlo
-from core.presets import get_preset_tickers
+from core.presets import get_hedge_tickers, get_preset_tickers
 from core.sml import select_tickers_above_sml
 from models import AnalyzeRequest
 
@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("portfolio")
 
-app = FastAPI(title="Portfolio Analysis API", version="0.2.0")
+app = FastAPI(title="Portfolio Analysis API", version="0.3.0")
 
 origins = [
     o.strip()
@@ -43,7 +43,7 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-def _resolve_universe(preset: str, custom: list[str]) -> list[str]:
+def _resolve_equity_universe(preset: str, custom: list[str]) -> list[str]:
     try:
         base = get_preset_tickers(preset)  # type: ignore[arg-type]
     except Exception as exc:
@@ -67,24 +67,37 @@ def _resolve_universe(preset: str, custom: list[str]) -> list[str]:
 def analyze(req: AnalyzeRequest) -> dict:
     t_start = time.perf_counter()
 
-    universe = _resolve_universe(req.preset, req.custom_tickers)
-    if not universe:
+    equity_universe = _resolve_equity_universe(req.preset, req.custom_tickers)
+
+    try:
+        hedge_tickers = get_hedge_tickers(req.hedge_assets)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    if not equity_universe and not hedge_tickers:
         raise HTTPException(
             status_code=400,
-            detail="Empty universe. Pick a preset or provide custom_tickers.",
+            detail="Empty portfolio. Pick a preset, custom tickers, or hedge assets.",
         )
 
     logger.info(
-        "analyze: preset=%s, universe=%d, custom=%d, period=%s, sims=%d",
+        "analyze: preset=%s, equities=%d, custom=%d, hedges=%d, period=%s, sims=%d",
         req.preset,
-        len(universe),
+        len(equity_universe),
         len(req.custom_tickers),
+        len(hedge_tickers),
         req.period,
         req.n_simulations,
     )
+    if hedge_tickers:
+        logger.info(
+            "Hedge assets added: %d (%s)", len(hedge_tickers), hedge_tickers
+        )
 
     benchmarks = list(req.benchmarks) if req.benchmarks else ["SPY", "QQQ", "^NYFANG"]
-    all_tickers = list(dict.fromkeys([*universe, *benchmarks]))
+    all_tickers = list(
+        dict.fromkeys([*equity_universe, *hedge_tickers, *benchmarks])
+    )
 
     try:
         _prices, returns = fetch_prices_and_returns(all_tickers, req.period)
@@ -96,32 +109,46 @@ def analyze(req: AnalyzeRequest) -> dict:
             status_code=400, detail="No return data available for given inputs."
         )
 
-    available_universe = [t for t in universe if t in returns.columns]
-    if not available_universe:
-        raise HTTPException(
-            status_code=400,
-            detail="None of the universe tickers have return data.",
-        )
+    available_equities = [t for t in equity_universe if t in returns.columns]
+    available_hedges = [t for t in hedge_tickers if t in returns.columns]
 
-    try:
-        selected, bench_info = select_tickers_above_sml(
-            returns, available_universe, benchmarks
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    if available_equities:
+        try:
+            selected_equities, bench_info = select_tickers_above_sml(
+                returns, available_equities, benchmarks
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    else:
+        # No equities at all — still need bench_info for the response.
+        try:
+            _empty, bench_info = select_tickers_above_sml(
+                returns, available_hedges or benchmarks, benchmarks
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        selected_equities = []
+
+    logger.info(
+        "SML filter: %d/%d equities above line (slope=%.4f); hedges bypass filter: %d",
+        len(selected_equities),
+        len(available_equities),
+        bench_info["sml_slope"],
+        len(available_hedges),
+    )
+
+    seen: set[str] = set()
+    selected: list[str] = []
+    for t in (*selected_equities, *available_hedges):
+        if t not in seen:
+            seen.add(t)
+            selected.append(t)
 
     if not selected:
         raise HTTPException(
             status_code=400,
-            detail="No tickers lie above the Security Market Line.",
+            detail="No tickers available for optimization after SML filter.",
         )
-
-    logger.info(
-        "SML filter: %d/%d tickers above line (slope=%.4f)",
-        len(selected),
-        len(available_universe),
-        bench_info["sml_slope"],
-    )
 
     mc = run_monte_carlo(returns, selected, req.n_simulations)
     sharpe_arr = mc["sharpe"]
@@ -147,7 +174,8 @@ def analyze(req: AnalyzeRequest) -> dict:
             "max_drawdown": float(mc["max_drawdown"][optimal_idx]),
         },
         "filtered_tickers": selected,
-        "universe_size": len(available_universe),
+        "hedge_tickers": available_hedges,
+        "universe_size": len(available_equities),
         "filtered_count": len(selected),
         "benchmarks_info": bench_info,
         "backtest": {

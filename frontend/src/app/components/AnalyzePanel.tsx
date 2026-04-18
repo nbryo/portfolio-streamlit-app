@@ -28,7 +28,19 @@ export default function AnalyzePanel() {
 
           <SelectionStats result={result} />
 
-          <SelectedTickersChips tickers={result.filtered_tickers} />
+          {result.hedge_tickers.length > 0 && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Hedge assets:{" "}
+              <span className="num text-purple-700 dark:text-purple-300">
+                {result.hedge_tickers.join(" · ")}
+              </span>
+            </p>
+          )}
+
+          <SelectedTickersChips
+            tickers={result.filtered_tickers}
+            hedgeTickers={result.hedge_tickers}
+          />
 
           <SectionTitle label="Portfolio" />
 
@@ -83,8 +95,15 @@ function SelectionStats({ result }: { result: AnalyzeResponse }) {
   );
 }
 
-function SelectedTickersChips({ tickers }: { tickers: string[] }) {
+function SelectedTickersChips({
+  tickers,
+  hedgeTickers,
+}: {
+  tickers: string[];
+  hedgeTickers: string[];
+}) {
   if (!tickers.length) return null;
+  const hedgeSet = new Set(hedgeTickers);
   return (
     <section>
       <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium mb-2">
@@ -95,15 +114,22 @@ function SelectedTickersChips({ tickers }: { tickers: string[] }) {
         role="list"
         aria-label="Filtered tickers"
       >
-        {tickers.map((t) => (
-          <span
-            key={t}
-            role="listitem"
-            className="num shrink-0 px-2.5 py-1 text-xs font-medium rounded border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300"
-          >
-            {t}
-          </span>
-        ))}
+        {tickers.map((t) => {
+          const isHedge = hedgeSet.has(t);
+          const cls = isHedge
+            ? "border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300"
+            : "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300";
+          return (
+            <span
+              key={t}
+              role="listitem"
+              className={"num shrink-0 px-2.5 py-1 text-xs font-medium rounded border " + cls}
+              title={isHedge ? "Hedge asset" : "Equity (above SML)"}
+            >
+              {t}
+            </span>
+          );
+        })}
       </div>
     </section>
   );

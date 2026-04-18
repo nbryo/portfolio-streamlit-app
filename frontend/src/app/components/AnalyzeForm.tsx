@@ -3,10 +3,12 @@
 import { useMemo, useState } from "react";
 import { analyzePortfolio } from "@/lib/api";
 import {
+  HEDGE_ASSETS,
   PRESETS,
   PRESET_ORDER,
   type AnalyzeRequest,
   type AnalyzeResponse,
+  type HedgeAssetKey,
   type Period,
   type Preset,
 } from "@/lib/types";
@@ -21,6 +23,7 @@ interface Props {
 export default function AnalyzeForm({ onResult }: Props) {
   const [preset, setPreset] = useState<Preset>("fang_plus");
   const [customInput, setCustomInput] = useState("");
+  const [hedgeAssets, setHedgeAssets] = useState<HedgeAssetKey[]>([]);
   const [period, setPeriod] = useState<Period>("5y");
   const [nSimulations, setNSimulations] = useState(10000);
   const [bench1, setBench1] = useState("SPY");
@@ -65,6 +68,7 @@ export default function AnalyzeForm({ onResult }: Props) {
     const req: AnalyzeRequest = {
       preset,
       custom_tickers: customTickers,
+      hedge_assets: hedgeAssets,
       period,
       n_simulations: nSimulations,
       benchmarks,
@@ -191,6 +195,37 @@ export default function AnalyzeForm({ onResult }: Props) {
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium">
+            ヘッジ資産（任意）
+          </span>
+          <span className="text-[10px] text-zinc-500 dark:text-zinc-500">
+            SMLフィルタ対象外 — 選んだものは分散効果のため無条件で組み込まれます
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {HEDGE_ASSETS.map((h) => {
+            const checked = hedgeAssets.includes(h.key);
+            return (
+              <HedgeCheckbox
+                key={h.key}
+                checked={checked}
+                label={h.label}
+                ticker={h.ticker}
+                onToggle={() =>
+                  setHedgeAssets((prev) =>
+                    prev.includes(h.key)
+                      ? prev.filter((k) => k !== h.key)
+                      : [...prev, h.key],
+                  )
+                }
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium">
             ベンチマーク（3指数）
           </span>
           <span className="text-[10px] text-zinc-500 dark:text-zinc-500">
@@ -262,6 +297,63 @@ function Field({
           {hint}
         </span>
       )}
+    </label>
+  );
+}
+
+function HedgeCheckbox({
+  checked,
+  label,
+  ticker,
+  onToggle,
+}: {
+  checked: boolean;
+  label: string;
+  ticker: string;
+  onToggle: () => void;
+}) {
+  return (
+    <label
+      className={
+        "flex items-center gap-3 px-3 py-2 rounded border text-sm cursor-pointer transition-colors select-none " +
+        (checked
+          ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-100"
+          : "border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-500")
+      }
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onToggle}
+        className="sr-only"
+      />
+      <span
+        aria-hidden
+        className={
+          "flex items-center justify-center h-4 w-4 rounded border shrink-0 " +
+          (checked
+            ? "bg-blue-600 border-blue-600 dark:bg-blue-500 dark:border-blue-500"
+            : "bg-white dark:bg-zinc-950 border-zinc-300 dark:border-zinc-600")
+        }
+      >
+        {checked && (
+          <svg
+            viewBox="0 0 16 16"
+            className="h-3 w-3 text-white"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="3 8.5 7 12 13 4.5" />
+          </svg>
+        )}
+      </span>
+      <span className="flex-1">{label}</span>
+      <span className="num text-[11px] text-zinc-500 dark:text-zinc-400">
+        {ticker}
+      </span>
     </label>
   );
 }
