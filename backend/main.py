@@ -1,4 +1,6 @@
+import logging
 import os
+import time
 
 import numpy as np
 from dotenv import load_dotenv
@@ -8,12 +10,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.backtest import backtest_fixed_weights
 from core.data import fetch_prices_and_returns
 from core.portfolio import run_monte_carlo
+from core.presets import get_preset_tickers
 from core.sml import select_tickers_above_sml
 from models import AnalyzeRequest
 
 load_dotenv()
 
-app = FastAPI(title="Portfolio Analysis API", version="0.1.0")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s | %(message)s",
+)
+logger = logging.getLogger("portfolio")
+
+app = FastAPI(title="Portfolio Analysis API", version="0.2.0")
 
 origins = [
     o.strip()
@@ -34,15 +43,48 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+def _resolve_universe(preset: str, custom: list[str]) -> list[str]:
+    try:
+        base = get_preset_tickers(preset)  # type: ignore[arg-type]
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to resolve preset '{preset}': {exc}",
+        )
+
+    extra = [t.strip().upper() for t in custom if t and t.strip()]
+    combined: list[str] = []
+    seen: set[str] = set()
+    for t in (*base, *extra):
+        up = t.upper()
+        if up not in seen:
+            seen.add(up)
+            combined.append(up)
+    return combined
+
+
 @app.post("/api/analyze")
 def analyze(req: AnalyzeRequest) -> dict:
-    user_tickers = [t.strip().upper() for t in req.tickers if t.strip()]
-    if not user_tickers:
-        raise HTTPException(status_code=400, detail="No valid tickers provided.")
+    t_start = time.perf_counter()
 
-    market = req.benchmarks.market
-    growth = req.benchmarks.growth
-    all_tickers = list(set(user_tickers + [market, growth]))
+    universe = _resolve_universe(req.preset, req.custom_tickers)
+    if not universe:
+        raise HTTPException(
+            status_code=400,
+            detail="Empty universe. Pick a preset or provide custom_tickers.",
+        )
+
+    logger.info(
+        "analyze: preset=%s, universe=%d, custom=%d, period=%s, sims=%d",
+        req.preset,
+        len(universe),
+        len(req.custom_tickers),
+        req.period,
+        req.n_simulations,
+    )
+
+    benchmarks = list(req.benchmarks) if req.benchmarks else ["SPY", "QQQ", "^NYFANG"]
+    all_tickers = list(dict.fromkeys([*universe, *benchmarks]))
 
     try:
         _prices, returns = fetch_prices_and_returns(all_tickers, req.period)
@@ -50,34 +92,46 @@ def analyze(req: AnalyzeRequest) -> dict:
         raise HTTPException(status_code=502, detail=f"Failed to fetch price data: {e}")
 
     if returns.empty:
-        raise HTTPException(status_code=400, detail="No return data available for given tickers/period.")
+        raise HTTPException(
+            status_code=400, detail="No return data available for given inputs."
+        )
 
-    missing = [t for t in all_tickers if t not in returns.columns]
-    if missing:
+    available_universe = [t for t in universe if t in returns.columns]
+    if not available_universe:
         raise HTTPException(
             status_code=400,
-            detail=f"No data for tickers: {', '.join(missing)}",
+            detail="None of the universe tickers have return data.",
         )
 
     try:
-        selected, _ann_ret, _ann_vol, _bench = select_tickers_above_sml(
-            returns, user_tickers, market, growth
+        selected, bench_info = select_tickers_above_sml(
+            returns, available_universe, benchmarks
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     if not selected:
         raise HTTPException(
-            status_code=400, detail="No tickers are above the Security Market Line."
+            status_code=400,
+            detail="No tickers lie above the Security Market Line.",
         )
 
-    mc = run_monte_carlo(returns, selected, req.n_simulations)
+    logger.info(
+        "SML filter: %d/%d tickers above line (slope=%.4f)",
+        len(selected),
+        len(available_universe),
+        bench_info["sml_slope"],
+    )
 
+    mc = run_monte_carlo(returns, selected, req.n_simulations)
     sharpe_arr = mc["sharpe"]
     optimal_idx = int(np.argmax(sharpe_arr))
     opt_weights = {t: float(w) for t, w in zip(selected, mc["weights"][optimal_idx])}
 
     cumulative = backtest_fixed_weights(returns, selected, opt_weights)
+
+    elapsed = time.perf_counter() - t_start
+    logger.info("analyze complete in %.1fs", elapsed)
 
     return {
         "scatter": {
@@ -93,13 +147,18 @@ def analyze(req: AnalyzeRequest) -> dict:
             "max_drawdown": float(mc["max_drawdown"][optimal_idx]),
         },
         "filtered_tickers": selected,
+        "universe_size": len(available_universe),
+        "filtered_count": len(selected),
+        "benchmarks_info": bench_info,
         "backtest": {
             "dates": [d.strftime("%Y-%m-%d") for d in cumulative.index],
             "cumulative_returns": cumulative.values.tolist(),
         },
         "metadata": {
+            "preset": req.preset,
             "n_simulations": req.n_simulations,
             "period": req.period,
-            "benchmarks_used": {"market": market, "growth": growth},
+            "benchmarks_used": benchmarks,
+            "elapsed_seconds": elapsed,
         },
     }
