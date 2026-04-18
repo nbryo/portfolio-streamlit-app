@@ -33,7 +33,7 @@ export default function TypewriterTitle() {
 
   return (
     <h1
-      className="text-3xl md:text-5xl font-bold text-blue-600 dark:text-blue-400 tracking-tight leading-tight"
+      className="text-3xl md:text-5xl font-bold text-[#219ebc] dark:text-[#8ecae6] tracking-tight leading-tight"
       aria-label={FULL_TITLE}
     >
       <span>{displayed}</span>
@@ -41,7 +41,7 @@ export default function TypewriterTitle() {
         <span
           aria-hidden
           className={
-            "inline-block w-[0.08em] h-[0.9em] bg-blue-600 dark:bg-blue-400 ml-1 align-[-0.1em] " +
+            "inline-block w-[0.08em] h-[0.9em] bg-[#219ebc] dark:bg-[#8ecae6] ml-1 align-[-0.1em] " +
             (done ? "animate-pulse" : "")
           }
         />

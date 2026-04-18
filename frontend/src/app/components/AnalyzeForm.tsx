@@ -27,35 +27,36 @@ const SIMULATION_OPTIONS: { value: number; label: string }[] = [
   { value: 50000, label: "50,000回（最高精度）" },
 ];
 
-// Pastel palette per preset. Unselected = soft tint; selected = bold solid.
+// Unified blue-accent palette. Each preset keeps its hue across states; only
+// border + shadow change when selected.
 const PRESET_PALETTE: Record<
   Preset,
   { base: string; selected: string }
 > = {
   sp500: {
-    base: "bg-sky-50 border-sky-200 text-sky-800 hover:bg-sky-100 hover:border-sky-300 dark:bg-sky-950/30 dark:border-sky-900 dark:text-sky-200 dark:hover:bg-sky-950/50",
+    base: "border-transparent bg-[#8ecae6] text-[#023047] hover:brightness-105 dark:bg-[#1e3a52] dark:text-[#8ecae6]",
     selected:
-      "bg-sky-600 border-sky-600 text-white shadow-md shadow-sky-600/20 dark:bg-sky-500 dark:border-sky-500",
+      "border-[#023047] bg-[#8ecae6] text-[#023047] shadow-lg dark:bg-[#1e3a52] dark:text-[#8ecae6] dark:border-[#8ecae6]",
   },
   nasdaq100: {
-    base: "bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100 hover:border-violet-300 dark:bg-violet-950/30 dark:border-violet-900 dark:text-violet-200 dark:hover:bg-violet-950/50",
+    base: "border-transparent bg-[#219ebc] text-white hover:brightness-110 dark:bg-[#023047] dark:text-[#8ecae6]",
     selected:
-      "bg-violet-600 border-violet-600 text-white shadow-md shadow-violet-600/20 dark:bg-violet-500 dark:border-violet-500",
+      "border-[#023047] bg-[#219ebc] text-white shadow-lg dark:bg-[#023047] dark:text-[#8ecae6] dark:border-[#8ecae6]",
   },
   dow30: {
-    base: "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-300 dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-200 dark:hover:bg-emerald-950/50",
+    base: "border-transparent bg-[#cdeefb] text-[#023047] hover:brightness-[0.98] dark:bg-[#0d2438] dark:text-[#8ecae6]",
     selected:
-      "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-600/20 dark:bg-emerald-500 dark:border-emerald-500",
+      "border-[#023047] bg-[#cdeefb] text-[#023047] shadow-lg dark:bg-[#0d2438] dark:text-[#8ecae6] dark:border-[#8ecae6]",
   },
   fang_plus: {
-    base: "bg-pink-50 border-pink-200 text-pink-800 hover:bg-pink-100 hover:border-pink-300 dark:bg-pink-950/30 dark:border-pink-900 dark:text-pink-200 dark:hover:bg-pink-950/50",
+    base: "border-transparent bg-[#ffb703] text-[#023047] hover:brightness-105 dark:bg-[#5a3e00] dark:text-[#ffb703]",
     selected:
-      "bg-pink-600 border-pink-600 text-white shadow-md shadow-pink-600/20 dark:bg-pink-500 dark:border-pink-500",
+      "border-[#023047] bg-[#ffb703] text-[#023047] shadow-lg dark:bg-[#5a3e00] dark:text-[#ffb703] dark:border-[#ffb703]",
   },
   custom: {
-    base: "bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800",
+    base: "border-transparent bg-[#f1f3f5] text-[#495057] hover:bg-[#e9ecef] dark:bg-[#2a2d31] dark:text-[#e0e0e0]",
     selected:
-      "bg-zinc-800 border-zinc-800 text-white shadow-md shadow-zinc-900/20 dark:bg-zinc-200 dark:border-zinc-200 dark:text-zinc-900",
+      "border-[#023047] bg-[#f1f3f5] text-[#495057] shadow-lg dark:bg-[#2a2d31] dark:text-[#e0e0e0] dark:border-[#8ecae6]",
   },
 };
 
@@ -152,7 +153,7 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
                 onClick={() => setPreset(p)}
                 aria-pressed={active}
                 className={
-                  "shrink-0 min-w-[108px] px-3.5 py-2 text-sm font-medium rounded-lg border transition-all duration-150 " +
+                  "shrink-0 min-w-[108px] px-3.5 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-150 " +
                   (active ? palette.selected : palette.base)
                 }
               >
@@ -292,7 +293,7 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center justify-center gap-2 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-zinc-300 disabled:to-zinc-400 dark:disabled:from-zinc-700 dark:disabled:to-zinc-800 text-white rounded-lg px-8 py-3 text-sm font-medium shadow-sm shadow-blue-600/10 transition-colors duration-150"
+          className="inline-flex items-center justify-center gap-2 bg-gradient-to-br from-[#219ebc] to-[#023047] hover:brightness-110 disabled:bg-none disabled:bg-zinc-300 dark:disabled:bg-zinc-700 text-white rounded-lg px-8 py-3 text-sm font-medium shadow-lg shadow-[#023047]/20 transition-all duration-150"
         >
           {loading ? <Spinner /> : <Play className="w-4 h-4" aria-hidden />}
           {loading ? "分析中..." : "分析を実行"}
