@@ -5,11 +5,11 @@ import AnalyzeForm from "./AnalyzeForm";
 import EfficientFrontierChart from "./charts/EfficientFrontierChart";
 import BacktestChart from "./charts/BacktestChart";
 import WeightsPieChart from "./charts/WeightsPieChart";
-import type { AnalyzeResponse } from "@/lib/types";
+import { PRESETS, type AnalyzeResponse } from "@/lib/types";
 
-function pct(x: number): string {
+function pct(x: number, digits = 2): string {
   const sign = x > 0 ? "+" : "";
-  return `${sign}${(x * 100).toFixed(2)}%`;
+  return `${sign}${(x * 100).toFixed(digits)}%`;
 }
 
 export default function AnalyzePanel() {
@@ -21,7 +21,16 @@ export default function AnalyzePanel() {
 
       {result && (
         <div className="flex flex-col gap-8">
-          <SectionTitle label="Results" right={`${result.metadata.period} · ${result.metadata.n_simulations.toLocaleString()} simulations`} />
+          <SectionTitle
+            label="Selection"
+            right={`${PRESETS[result.metadata.preset].label} · ${result.metadata.period} · ${result.metadata.n_simulations.toLocaleString()} sims · ${result.metadata.elapsed_seconds.toFixed(1)}s`}
+          />
+
+          <SelectionStats result={result} />
+
+          <SelectedTickersChips tickers={result.filtered_tickers} />
+
+          <SectionTitle label="Portfolio" />
 
           <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Stat label="Expected Return" value={pct(result.optimal.return)} tone="pos" />
@@ -42,16 +51,57 @@ export default function AnalyzePanel() {
               <WeightsPieChart weights={result.optimal.weights} />
             </ChartCard>
           </section>
-
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Filtered tickers (above SML):{" "}
-            <span className="num text-zinc-700 dark:text-zinc-300">
-              {result.filtered_tickers.join(" · ")}
-            </span>
-          </p>
         </div>
       )}
     </div>
+  );
+}
+
+function SelectionStats({ result }: { result: AnalyzeResponse }) {
+  const universe = result.universe_size;
+  const kept = result.filtered_count;
+  const passRate = universe > 0 ? kept / universe : 0;
+  const info = result.benchmarks_info;
+
+  return (
+    <section className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <Stat label="Universe" value={`${universe.toLocaleString()}`} suffix="銘柄" />
+      <Stat
+        label="Above SML"
+        value={`${kept.toLocaleString()}`}
+        suffix={`/ ${universe} · ${pct(passRate, 1)}`}
+        tone="accent"
+      />
+      <Stat label="Bench Return (avg)" value={pct(info.mean.return)} tone="pos" />
+      <Stat label="Bench Risk (avg)" value={pct(info.mean.risk)} />
+      <Stat label="SML Slope" value={info.sml_slope.toFixed(3)} />
+    </section>
+  );
+}
+
+function SelectedTickersChips({ tickers }: { tickers: string[] }) {
+  if (!tickers.length) return null;
+  return (
+    <section>
+      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium mb-2">
+        Filtered tickers ({tickers.length})
+      </div>
+      <div
+        className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1"
+        role="list"
+        aria-label="Filtered tickers"
+      >
+        {tickers.map((t) => (
+          <span
+            key={t}
+            role="listitem"
+            className="num shrink-0 px-2.5 py-1 text-xs font-medium rounded border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300"
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -73,10 +123,12 @@ function SectionTitle({ label, right }: { label: string; right?: string }) {
 function Stat({
   label,
   value,
+  suffix,
   tone,
 }: {
   label: string;
   value: string;
+  suffix?: string;
   tone?: "pos" | "neg" | "accent";
 }) {
   const valueTone =
@@ -92,7 +144,12 @@ function Stat({
       <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         {label}
       </div>
-      <div className={`num text-2xl font-semibold mt-2 ${valueTone}`}>{value}</div>
+      <div className="flex items-baseline gap-2 mt-2">
+        <span className={`num text-2xl font-semibold ${valueTone}`}>{value}</span>
+        {suffix && (
+          <span className="num text-xs text-zinc-500 dark:text-zinc-400">{suffix}</span>
+        )}
+      </div>
     </div>
   );
 }
