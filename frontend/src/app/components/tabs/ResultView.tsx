@@ -302,15 +302,15 @@ function Stat({
   tone?: Tone;
 }) {
   const borderAccent: Record<Tone, string> = {
-    pos: "border-l-4 border-l-emerald-500 dark:border-l-emerald-500/80",
-    neg: "border-l-4 border-l-rose-500 dark:border-l-rose-500/80",
-    accent: "border-l-4 border-l-blue-700 dark:border-l-blue-500",
-    neutral: "border-l-4 border-l-zinc-300 dark:border-l-zinc-700",
+    pos: "border-l-4 border-l-[#ffb703]",
+    neg: "border-l-4 border-l-[#fb8500]",
+    accent: "border-l-4 border-l-[#219ebc]",
+    neutral: "border-l-4 border-l-[#6c757d]",
   };
   const valueTone: Record<Tone, string> = {
     pos: "text-emerald-600 dark:text-emerald-400",
-    neg: "text-rose-600 dark:text-rose-400",
-    accent: "text-blue-700 dark:text-blue-400",
+    neg: "text-[#fb8500] dark:text-[#fb8500]",
+    accent: "text-[#219ebc] dark:text-[#8ecae6]",
     neutral: "text-zinc-900 dark:text-zinc-100",
   };
   return (
