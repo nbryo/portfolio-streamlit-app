@@ -12,7 +12,7 @@ from core.data import fetch_prices_and_returns
 from core.portfolio import run_monte_carlo
 from core.presets import get_hedge_tickers, get_preset_tickers
 from core.sml import select_tickers_above_sml
-from models import AnalyzeRequest
+from models import AnalyzeRequest, BacktestForRequest
 
 load_dotenv()
 
@@ -41,6 +41,42 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.post("/api/backtest_for")
+def backtest_for(req: BacktestForRequest) -> dict:
+    if len(req.tickers) != len(req.weights):
+        raise HTTPException(
+            status_code=400,
+            detail="tickers と weights の長さが一致しません",
+        )
+
+    tickers = [t.strip().upper() for t in req.tickers if t.strip()]
+    if not tickers:
+        raise HTTPException(status_code=400, detail="tickers が空です")
+
+    try:
+        _prices, returns = fetch_prices_and_returns(tickers, req.period)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch price data: {e}")
+
+    available = [t for t in tickers if t in returns.columns]
+    if not available:
+        raise HTTPException(status_code=400, detail="利用可能な価格データがありません")
+
+    idx = {t: i for i, t in enumerate(tickers)}
+    w = np.array([float(req.weights[idx[t]]) for t in available])
+    w = np.clip(w, 0.0, None)
+    if w.sum() <= 0:
+        raise HTTPException(status_code=400, detail="重みが全て 0 です")
+    w = w / w.sum()
+    weights_dict = {t: float(wi) for t, wi in zip(available, w)}
+
+    cumulative = backtest_fixed_weights(returns, available, weights_dict)
+    return {
+        "dates": [d.strftime("%Y-%m-%d") for d in cumulative.index],
+        "cumulative_returns": cumulative.values.tolist(),
+    }
 
 
 def _resolve_equity_universe(preset: str, custom: list[str]) -> list[str]:
@@ -160,11 +196,15 @@ def analyze(req: AnalyzeRequest) -> dict:
     elapsed = time.perf_counter() - t_start
     logger.info("analyze complete in %.1fs", elapsed)
 
+    scatter_weights = np.round(mc["weights"], 6).tolist()
+
     return {
         "scatter": {
             "risk": mc["risk"].tolist(),
             "return": mc["return"].tolist(),
             "sharpe": mc["sharpe"].tolist(),
+            "weights": scatter_weights,
+            "tickers": selected,
         },
         "optimal": {
             "weights": opt_weights,

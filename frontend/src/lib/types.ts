@@ -61,6 +61,19 @@ export interface ScatterData {
   risk: number[];
   return: number[];
   sharpe: number[];
+  weights: number[][];
+  tickers: string[];
+}
+
+export interface BacktestForRequest {
+  tickers: string[];
+  weights: number[];
+  period: Period;
+}
+
+export interface BacktestForResponse {
+  dates: string[];
+  cumulative_returns: number[];
 }
 
 export interface OptimalPortfolio {

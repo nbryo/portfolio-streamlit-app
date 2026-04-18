@@ -6,19 +6,20 @@ import type { BacktestData } from "@/lib/types";
 
 interface Props {
   backtest: BacktestData;
+  loading?: boolean;
 }
 
-export default function BacktestChart({ backtest }: Props) {
+export default function BacktestChart({ backtest, loading }: Props) {
   const dark = useIsDark();
   const text = dark ? "#e4e4e7" : "#18181b";
   const grid = dark ? "#27272a" : "#e4e4e7";
-  const bg = dark ? "#111113" : "#ffffff";
-  const axis = dark ? "#71717a" : "#52525b";
-  const line = dark ? "#60a5fa" : "#1e40af";
-  const fill = dark ? "rgba(96,165,250,0.12)" : "rgba(59,130,246,0.08)";
+  const bg = dark ? "#18181b" : "#ffffff";
+  const axis = dark ? "#a1a1aa" : "#52525b";
+  const line = dark ? "#60a5fa" : "#1d4ed8";
+  const fill = dark ? "rgba(96,165,250,0.12)" : "rgba(37,99,235,0.08)";
 
   return (
-    <div className="h-[280px] md:h-[340px] w-full">
+    <div className="relative h-[280px] md:h-[340px] w-full">
       <PlotlyChart
         data={[
           {
@@ -59,6 +60,11 @@ export default function BacktestChart({ backtest }: Props) {
         style={{ width: "100%", height: "100%" }}
         useResizeHandler
       />
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-zinc-900/60 backdrop-blur-[1px] rounded-b-xl">
+          <span className="text-xs text-zinc-600 dark:text-zinc-300">再計算中...</span>
+        </div>
+      )}
     </div>
   );
 }

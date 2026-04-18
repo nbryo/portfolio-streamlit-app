@@ -5,9 +5,9 @@
   --surface: #ffffff;
   --border: #e4e4e7;
   --foreground: #0a0a0a;
-  --muted: #71717a;
-  --accent: #3b82f6;
-  --accent-2: #60a5fa;
+  --muted: #52525b;
+  --accent: #1d4ed8;
+  --accent-2: #2563eb;
 }
 
 @theme inline {
@@ -24,10 +24,10 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0b0d;
-    --surface: #111113;
+    --background: #0a0a0a;
+    --surface: #18181b;
     --border: #27272a;
-    --foreground: #fafafa;
+    --foreground: #f4f4f5;
     --muted: #a1a1aa;
     --accent: #3b82f6;
     --accent-2: #60a5fa;
@@ -47,6 +47,7 @@ body {
     system-ui,
     sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .num {
@@ -66,7 +67,7 @@ body {
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.5s ease-out both;
+  animation: fadeIn 0.35s ease-out both;
 }
 
 .scrollbar-hide {

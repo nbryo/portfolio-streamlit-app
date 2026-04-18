@@ -1,17 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Filter,
   LineChart as LineChartIcon,
   PieChart as PieChartIcon,
+  RotateCcw,
   TrendingUp,
 } from "lucide-react";
 import AnalyzeForm from "./AnalyzeForm";
 import EfficientFrontierChart from "./charts/EfficientFrontierChart";
 import BacktestChart from "./charts/BacktestChart";
 import WeightsPieChart from "./charts/WeightsPieChart";
-import { PRESETS, type AnalyzeResponse } from "@/lib/types";
+import { backtestFor } from "@/lib/api";
+import {
+  PRESETS,
+  type AnalyzeResponse,
+  type BacktestData,
+} from "@/lib/types";
 
 function pct(x: number, digits = 2): string {
   const sign = x > 0 ? "+" : "";
@@ -22,15 +28,88 @@ type Tone = "pos" | "neg" | "accent" | "neutral";
 
 export default function AnalyzePanel() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [dynamicBacktest, setDynamicBacktest] = useState<BacktestData | null>(null);
+  const [backtestLoading, setBacktestLoading] = useState(false);
+
+  const handleResult = useCallback((data: AnalyzeResponse) => {
+    setResult(data);
+    setSelectedIdx(null);
+    setDynamicBacktest(null);
+    setBacktestLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!result || selectedIdx === null) {
+      setDynamicBacktest(null);
+      setBacktestLoading(false);
+      return;
+    }
+    const tickers = result.scatter.tickers;
+    const weights = result.scatter.weights[selectedIdx];
+    if (!tickers || !weights) return;
+
+    const controller = new AbortController();
+    let cancelled = false;
+    setBacktestLoading(true);
+    backtestFor({ tickers, weights, period: result.metadata.period })
+      .then((d) => {
+        if (cancelled) return;
+        setDynamicBacktest(d);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDynamicBacktest(null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setBacktestLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [result, selectedIdx]);
+
+  const displayed = useMemo(() => {
+    if (!result) return null;
+    if (selectedIdx === null) {
+      return {
+        ret: result.optimal.return,
+        risk: result.optimal.risk,
+        sharpe: result.optimal.sharpe,
+        maxDrawdown: result.optimal.max_drawdown as number | null,
+        weights: result.optimal.weights,
+        backtest: dynamicBacktest ?? result.backtest,
+      };
+    }
+    const w = result.scatter.weights[selectedIdx] ?? [];
+    const weightsMap: Record<string, number> = {};
+    result.scatter.tickers.forEach((t, i) => {
+      const v = w[i] ?? 0;
+      if (v > 0) weightsMap[t] = v;
+    });
+    return {
+      ret: result.scatter.return[selectedIdx],
+      risk: result.scatter.risk[selectedIdx],
+      sharpe: result.scatter.sharpe[selectedIdx],
+      maxDrawdown: null as number | null,
+      weights: weightsMap,
+      backtest: dynamicBacktest ?? result.backtest,
+    };
+  }, [result, selectedIdx, dynamicBacktest]);
+
+  const isSelected = selectedIdx !== null;
 
   return (
-    <div className="flex flex-col gap-8 md:gap-10">
-      <AnalyzeForm onResult={setResult} />
+    <div className="flex flex-col gap-10 md:gap-14">
+      <AnalyzeForm onResult={handleResult} />
 
-      {result && (
-        <div key={result.metadata.elapsed_seconds} className="flex flex-col gap-8 animate-fadeIn">
+      {result && displayed && (
+        <div className="flex flex-col gap-10 animate-fadeIn">
           <SectionTitle
-            icon={<Filter className="w-4 h-4 text-blue-500" aria-hidden />}
+            icon={<Filter className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />}
             label="銘柄選別"
             right={`${PRESETS[result.metadata.preset].label} · ${result.metadata.period} · ${result.metadata.n_simulations.toLocaleString()}回 · ${result.metadata.elapsed_seconds.toFixed(1)}秒`}
           />
@@ -38,9 +117,9 @@ export default function AnalyzePanel() {
           <SelectionStats result={result} />
 
           {result.hedge_tickers.length > 0 && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 -mt-4">
               ヘッジ資産:{" "}
-              <span className="num text-purple-700 dark:text-purple-300">
+              <span className="num text-purple-700 dark:text-purple-300 font-medium">
                 {result.hedge_tickers.join(" · ")}
               </span>
             </p>
@@ -51,44 +130,67 @@ export default function AnalyzePanel() {
             hedgeTickers={result.hedge_tickers}
           />
 
-          <SectionTitle
-            icon={<PieChartIcon className="w-4 h-4 text-blue-500" aria-hidden />}
-            label="ポートフォリオ"
-          />
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <SectionTitleSimple
+              icon={<PieChartIcon className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />}
+              label={isSelected ? "選択したポートフォリオ" : "最適ポートフォリオ"}
+            />
+            {isSelected && (
+              <button
+                type="button"
+                onClick={() => setSelectedIdx(null)}
+                className="inline-flex items-center gap-1.5 text-sm text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+              >
+                <RotateCcw className="w-3.5 h-3.5" aria-hidden />
+                最大シャープ比に戻す
+              </button>
+            )}
+          </div>
 
-          <section className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
-            <Stat label="期待リターン" value={pct(result.optimal.return)} tone="pos" />
-            <Stat label="リスク（σ）" value={pct(result.optimal.risk)} tone="neutral" />
-            <Stat label="シャープ比" value={result.optimal.sharpe.toFixed(3)} tone="accent" />
-            <Stat label="最大下落率" value={pct(result.optimal.max_drawdown)} tone="neg" />
+          <section
+            key={selectedIdx ?? -1}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 animate-fadeIn"
+          >
+            <Stat label="期待リターン" value={pct(displayed.ret)} tone="pos" />
+            <Stat label="リスク（σ）" value={pct(displayed.risk)} tone="neutral" />
+            <Stat label="シャープ比" value={displayed.sharpe.toFixed(3)} tone="accent" />
+            <Stat
+              label="最大下落率"
+              value={displayed.maxDrawdown !== null ? pct(displayed.maxDrawdown) : "—"}
+              tone={displayed.maxDrawdown !== null ? "neg" : "neutral"}
+            />
           </section>
 
           <ChartCard
-            icon={<TrendingUp className="w-4 h-4 text-blue-500" aria-hidden />}
+            icon={<TrendingUp className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />}
             title="効率的フロンティア"
-            hint="最大シャープ比 ★ · SML 点線"
+            hint="点をクリックするとその配分が下に表示されます"
           >
             <EfficientFrontierChart
               scatter={result.scatter}
               optimal={result.optimal}
               benchmarksInfo={result.benchmarks_info}
+              selectedIdx={selectedIdx}
+              onSelect={(idx) => setSelectedIdx(idx)}
             />
           </ChartCard>
 
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ChartCard
-              icon={<LineChartIcon className="w-4 h-4 text-blue-500" aria-hidden />}
+              icon={<LineChartIcon className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />}
               title="バックテスト"
-              hint="最適配分で固定"
+              hint={isSelected ? "選択中の配分で累積" : "最適配分で固定"}
             >
-              <BacktestChart backtest={result.backtest} />
+              <BacktestChart backtest={displayed.backtest} loading={backtestLoading} />
             </ChartCard>
             <ChartCard
-              icon={<PieChartIcon className="w-4 h-4 text-blue-500" aria-hidden />}
+              icon={<PieChartIcon className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />}
               title="配分比率"
-              hint="最大シャープ比の配分"
+              hint={isSelected ? "選択中の配分" : "最大シャープ比の配分"}
             >
-              <WeightsPieChart weights={result.optimal.weights} />
+              <div key={selectedIdx ?? -1} className="animate-fadeIn">
+                <WeightsPieChart weights={displayed.weights} />
+              </div>
             </ChartCard>
           </section>
         </div>
@@ -130,11 +232,11 @@ function SelectedTickersChips({
   const hedgeSet = new Set(hedgeTickers);
   return (
     <section>
-      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium mb-2">
+      <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
         選ばれた銘柄 ({tickers.length})
       </div>
       <div
-        className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-1 px-1"
+        className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1"
         role="list"
         aria-label="選ばれた銘柄"
       >
@@ -142,12 +244,12 @@ function SelectedTickersChips({
           const isHedge = hedgeSet.has(t);
           const cls = isHedge
             ? "border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300"
-            : "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300";
+            : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300";
           return (
             <span
               key={t}
               role="listitem"
-              className={"num shrink-0 px-2.5 py-1 text-xs font-medium rounded-lg border " + cls}
+              className={"num shrink-0 px-2.5 py-1 text-xs font-medium rounded-md border " + cls}
               title={isHedge ? "ヘッジ資産" : "株式（SML通過）"}
             >
               {t}
@@ -169,17 +271,32 @@ function SectionTitle({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between border-b border-zinc-200 dark:border-zinc-800 pb-3">
-      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
+    <div className="flex items-baseline justify-between gap-3 border-b border-zinc-200 dark:border-zinc-800 pb-3">
+      <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-900 dark:text-zinc-100">
         {icon}
         {label}
       </h2>
       {right && (
-        <span className="num text-[11px] text-zinc-500 dark:text-zinc-400 uppercase tracking-wider truncate ml-3">
+        <span className="num text-xs text-zinc-500 dark:text-zinc-400 truncate">
           {right}
         </span>
       )}
     </div>
+  );
+}
+
+function SectionTitleSimple({
+  label,
+  icon,
+}: {
+  label: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+      {icon}
+      {label}
+    </h2>
   );
 }
 
@@ -194,31 +311,28 @@ function Stat({
   suffix?: string;
   tone?: Tone;
 }) {
-  const gradient: Record<Tone, string> = {
-    pos: "from-emerald-50 to-emerald-100/40 dark:from-emerald-950/30 dark:to-emerald-900/10",
-    neg: "from-rose-50 to-rose-100/40 dark:from-rose-950/30 dark:to-rose-900/10",
-    accent: "from-blue-50 to-blue-100/40 dark:from-blue-950/30 dark:to-blue-900/10",
-    neutral: "from-zinc-50 to-zinc-100/40 dark:from-zinc-900 dark:to-zinc-900/50",
+  const borderAccent: Record<Tone, string> = {
+    pos: "border-l-4 border-l-emerald-500 dark:border-l-emerald-500/80",
+    neg: "border-l-4 border-l-rose-500 dark:border-l-rose-500/80",
+    accent: "border-l-4 border-l-blue-700 dark:border-l-blue-500",
+    neutral: "border-l-4 border-l-zinc-300 dark:border-l-zinc-700",
   };
   const valueTone: Record<Tone, string> = {
     pos: "text-emerald-600 dark:text-emerald-400",
     neg: "text-rose-600 dark:text-rose-400",
-    accent: "text-blue-600 dark:text-blue-400",
+    accent: "text-blue-700 dark:text-blue-400",
     neutral: "text-zinc-900 dark:text-zinc-100",
   };
   return (
     <div
       className={
-        "bg-gradient-to-br " +
-        gradient[tone] +
-        " border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 px-4 py-5"
+        "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-5 py-5 " +
+        borderAccent[tone]
       }
     >
-      <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-        {label}
-      </div>
-      <div className="flex items-baseline gap-2 mt-3">
-        <span className={`num text-2xl md:text-3xl font-semibold ${valueTone[tone]}`}>
+      <div className="text-sm text-zinc-600 dark:text-zinc-400">{label}</div>
+      <div className="flex items-baseline gap-2 mt-2">
+        <span className={`num text-3xl font-bold tabular-nums ${valueTone[tone]}`}>
           {value}
         </span>
         {suffix && (
@@ -241,14 +355,14 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
-      <header className="flex items-baseline justify-between px-5 py-3 border-b border-zinc-100 dark:border-zinc-800">
-        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
+    <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
+      <header className="flex items-baseline justify-between gap-3 px-5 py-3 border-b border-zinc-100 dark:border-zinc-800">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
           {icon}
           {title}
         </h3>
         {hint && (
-          <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400 text-right">
             {hint}
           </span>
         )}

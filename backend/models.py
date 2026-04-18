@@ -15,3 +15,9 @@ class AnalyzeRequest(BaseModel):
     benchmarks: list[str] = Field(
         default_factory=lambda: ["SPY", "QQQ", "^NYFANG"]
     )
+
+
+class BacktestForRequest(BaseModel):
+    tickers: list[str] = Field(..., min_length=1)
+    weights: list[float] = Field(..., min_length=1)
+    period: Period = "1y"

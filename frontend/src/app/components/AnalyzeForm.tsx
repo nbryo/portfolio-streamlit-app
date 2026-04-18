@@ -17,14 +17,6 @@ import {
 const PERIOD_OPTIONS: Period[] = ["1mo", "3mo", "6mo", "1y", "2y", "3y", "4y", "5y"];
 const HEAVY_PRESETS: Preset[] = ["sp500", "nasdaq100"];
 
-const PRESET_EMOJI: Record<Preset, string> = {
-  sp500: "📊",
-  nasdaq100: "💻",
-  dow30: "🏛️",
-  fang_plus: "🚀",
-  custom: "✏️",
-};
-
 interface Props {
   onResult?: (data: AnalyzeResponse) => void;
 }
@@ -85,11 +77,9 @@ export default function AnalyzeForm({ onResult }: Props) {
 
     try {
       const data = await analyzePortfolio(req);
-      console.log("Analyze response:", data);
       onResult?.(data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("Analyze failed:", msg);
       setError(msg);
     } finally {
       setLoading(false);
@@ -99,35 +89,31 @@ export default function AnalyzeForm({ onResult }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-5 md:p-8 flex flex-col gap-7"
+      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm p-6 md:p-8 flex flex-col gap-8"
     >
       <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100">
-          <Settings className="w-4 h-4 text-blue-500" aria-hidden />
+        <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          <Settings className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
           設定
         </h2>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-          入力
-        </span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">入力</span>
       </div>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium">
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
             銘柄ユニバース
           </span>
-          <span className="num text-[11px] text-zinc-600 dark:text-zinc-400">
+          <span className="num text-xs text-zinc-600 dark:text-zinc-400">
             現在の選択:{" "}
             <span className="text-zinc-900 dark:text-zinc-100 font-semibold">
               {presetMeta.label}
             </span>
             {!isCustomOnly && (
-              <>
+              <span className="text-zinc-500 dark:text-zinc-400">
                 {" "}
-                <span className="text-zinc-500 dark:text-zinc-400">
-                  ({presetMeta.count}銘柄)
-                </span>
-              </>
+                ({presetMeta.count}銘柄)
+              </span>
             )}
           </span>
         </div>
@@ -143,13 +129,12 @@ export default function AnalyzeForm({ onResult }: Props) {
                 onClick={() => setPreset(p)}
                 aria-pressed={active}
                 className={
-                  "shrink-0 min-w-[110px] px-3 py-2 text-xs font-medium rounded-lg border transition-all duration-200 " +
+                  "shrink-0 min-w-[108px] px-3.5 py-2 text-sm rounded-lg border transition-colors duration-150 " +
                   (active
-                    ? "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-600 text-white shadow-md dark:from-blue-500 dark:to-blue-600 dark:border-blue-400"
-                    : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700")
+                    ? "bg-blue-700 border-blue-700 text-white font-medium dark:bg-blue-600 dark:border-blue-600"
+                    : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-blue-300 dark:hover:border-blue-700")
                 }
               >
-                <span className="mr-1.5">{PRESET_EMOJI[p]}</span>
                 {meta.label}
                 <span className="num">{countLabel}</span>
               </button>
@@ -171,7 +156,7 @@ export default function AnalyzeForm({ onResult }: Props) {
           value={customInput}
           onChange={(e) => setCustomInput(e.target.value)}
           placeholder={isCustomOnly ? "AAPL, MSFT, NVDA" : "例: TLT, GLD"}
-          className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+          className="num w-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600"
         />
       </Field>
 
@@ -180,7 +165,7 @@ export default function AnalyzeForm({ onResult }: Props) {
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as Period)}
-            className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+            className="num w-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600"
           >
             {PERIOD_OPTIONS.map((p) => (
               <option key={p} value={p}>
@@ -198,18 +183,18 @@ export default function AnalyzeForm({ onResult }: Props) {
             step={100}
             value={nSimulations}
             onChange={(e) => setNSimulations(Number(e.target.value))}
-            className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+            className="num w-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600"
           />
         </Field>
       </div>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
-          <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium">
-            <Shield className="w-4 h-4 text-purple-500" aria-hidden />
+          <span className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <Shield className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
             ヘッジ資産（任意）
           </span>
-          <span className="text-[10px] text-zinc-500 dark:text-zinc-500">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
             SMLフィルタ対象外 — 分散効果のため無条件で組み込まれます
           </span>
         </div>
@@ -237,12 +222,12 @@ export default function AnalyzeForm({ onResult }: Props) {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
-          <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium">
-            <BarChart3 className="w-4 h-4 text-blue-500" aria-hidden />
+          <span className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <BarChart3 className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
             ベンチマーク（3指数）
           </span>
-          <span className="text-[10px] text-zinc-500 dark:text-zinc-500">
-            3指数のリスク/リターン平均で SML を引きます
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            3指数の平均で SML を引きます
           </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -258,20 +243,18 @@ export default function AnalyzeForm({ onResult }: Props) {
         </div>
       </section>
 
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-2">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-2">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
           {loading
-            ? isHeavy
-              ? `計算しています... ${presetMeta.label}（${presetMeta.count}銘柄）は30秒ほどかかります ☕`
-              : "計算しています..."
+            ? "計算しています..."
             : isHeavy
-              ? `${presetMeta.label}（${presetMeta.count}銘柄）は計算に30秒ほどかかります ☕`
-              : "下に結果が表示されます"}
+              ? `${presetMeta.label}（${presetMeta.count}銘柄）は計算に30秒ほどかかります。`
+              : "下に結果が表示されます。"}
         </p>
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center justify-center gap-2 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 hover:scale-[1.02] active:scale-100 disabled:from-zinc-300 disabled:to-zinc-400 dark:disabled:from-zinc-700 dark:disabled:to-zinc-800 disabled:hover:scale-100 text-white rounded-lg px-6 py-2.5 text-sm font-medium shadow-lg shadow-blue-500/20 transition-all duration-200"
+          className="inline-flex items-center justify-center gap-2 bg-gradient-to-b from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-zinc-300 disabled:to-zinc-400 dark:disabled:from-zinc-700 dark:disabled:to-zinc-800 text-white rounded-lg px-8 py-3 text-sm font-medium shadow-sm shadow-blue-600/10 transition-colors duration-150"
         >
           {loading ? <Spinner /> : <Play className="w-4 h-4" aria-hidden />}
           {loading ? "分析中..." : "分析を実行"}
@@ -301,12 +284,12 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 font-medium">
+      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
         {label}
       </span>
       {children}
       {hint && (
-        <span className="text-[11px] text-zinc-500 dark:text-zinc-500 leading-snug">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 leading-snug">
           {hint}
         </span>
       )}
@@ -331,7 +314,7 @@ function HedgeCheckbox({
         "flex items-center gap-3 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors select-none " +
         (checked
           ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-100"
-          : "border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-700 dark:text-zinc-300 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/50 dark:hover:bg-blue-950/20")
+          : "border-zinc-200 dark:border-zinc-700 bg-transparent text-zinc-700 dark:text-zinc-300 hover:border-blue-300 dark:hover:border-blue-700")
       }
     >
       <input
@@ -345,7 +328,7 @@ function HedgeCheckbox({
         className={
           "flex items-center justify-center h-4 w-4 rounded border shrink-0 transition-colors " +
           (checked
-            ? "bg-blue-500 border-blue-500 dark:bg-blue-400 dark:border-blue-400"
+            ? "bg-blue-600 border-blue-600 dark:bg-blue-500 dark:border-blue-500"
             : "bg-white dark:bg-zinc-950 border-zinc-300 dark:border-zinc-600")
         }
       >
@@ -364,7 +347,7 @@ function HedgeCheckbox({
         )}
       </span>
       <span className="flex-1">{label}</span>
-      <span className="num text-[11px] text-zinc-500 dark:text-zinc-400">
+      <span className="num text-xs text-zinc-500 dark:text-zinc-400">
         {ticker}
       </span>
     </label>
@@ -383,7 +366,7 @@ function BenchmarkInput({
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="num w-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+      className="num w-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600"
     />
   );
 }
