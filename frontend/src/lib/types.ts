@@ -87,6 +87,16 @@ export interface BacktestForResponse {
   cumulative_returns: number[];
 }
 
+export interface TickerMatch {
+  ticker: string;
+  english: string;
+  japanese: string;
+}
+
+export interface TickerSearchResponse {
+  results: TickerMatch[];
+}
+
 export interface OptimalPortfolio {
   weights: Record<string, number>;
   return: number;

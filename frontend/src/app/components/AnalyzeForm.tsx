@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { BarChart3, Play, Settings, Shield } from "lucide-react";
-import { analyzePortfolio } from "@/lib/api";
+import { useEffect, useRef, useState } from "react";
+import { BarChart3, Play, Search, Shield, X } from "lucide-react";
+import { analyzePortfolio, searchTicker } from "@/lib/api";
 import {
   HEDGE_ASSETS,
   PERIOD_LABELS,
@@ -13,10 +13,51 @@ import {
   type HedgeAssetKey,
   type Period,
   type Preset,
+  type TickerMatch,
 } from "@/lib/types";
 
 const PERIOD_OPTIONS: Period[] = ["1mo", "3mo", "6mo", "1y", "2y", "3y", "4y", "5y"];
 const HEAVY_PRESETS: Preset[] = ["sp500", "nasdaq100"];
+
+const SIMULATION_OPTIONS: { value: number; label: string }[] = [
+  { value: 1000, label: "1,000回（高速）" },
+  { value: 5000, label: "5,000回（標準）" },
+  { value: 10000, label: "10,000回（推奨）" },
+  { value: 20000, label: "20,000回（高精度）" },
+  { value: 50000, label: "50,000回（最高精度）" },
+];
+
+// Pastel palette per preset. Unselected = soft tint; selected = bold solid.
+const PRESET_PALETTE: Record<
+  Preset,
+  { base: string; selected: string }
+> = {
+  sp500: {
+    base: "bg-sky-50 border-sky-200 text-sky-800 hover:bg-sky-100 hover:border-sky-300 dark:bg-sky-950/30 dark:border-sky-900 dark:text-sky-200 dark:hover:bg-sky-950/50",
+    selected:
+      "bg-sky-600 border-sky-600 text-white shadow-md shadow-sky-600/20 dark:bg-sky-500 dark:border-sky-500",
+  },
+  nasdaq100: {
+    base: "bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100 hover:border-violet-300 dark:bg-violet-950/30 dark:border-violet-900 dark:text-violet-200 dark:hover:bg-violet-950/50",
+    selected:
+      "bg-violet-600 border-violet-600 text-white shadow-md shadow-violet-600/20 dark:bg-violet-500 dark:border-violet-500",
+  },
+  dow30: {
+    base: "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-300 dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-200 dark:hover:bg-emerald-950/50",
+    selected:
+      "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-600/20 dark:bg-emerald-500 dark:border-emerald-500",
+  },
+  fang_plus: {
+    base: "bg-pink-50 border-pink-200 text-pink-800 hover:bg-pink-100 hover:border-pink-300 dark:bg-pink-950/30 dark:border-pink-900 dark:text-pink-200 dark:hover:bg-pink-950/50",
+    selected:
+      "bg-pink-600 border-pink-600 text-white shadow-md shadow-pink-600/20 dark:bg-pink-500 dark:border-pink-500",
+  },
+  custom: {
+    base: "bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800",
+    selected:
+      "bg-zinc-800 border-zinc-800 text-white shadow-md shadow-zinc-900/20 dark:bg-zinc-200 dark:border-zinc-200 dark:text-zinc-900",
+  },
+};
 
 interface Props {
   onResult: (data: AnalyzeResponse) => void;
@@ -26,7 +67,7 @@ interface Props {
 
 export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
   const [preset, setPreset] = useState<Preset>("fang_plus");
-  const [customInput, setCustomInput] = useState("");
+  const [customTickers, setCustomTickers] = useState<string[]>([]);
   const [hedgeAssets, setHedgeAssets] = useState<HedgeAssetKey[]>([]);
   const [period, setPeriod] = useState<Period>("5y");
   const [nSimulations, setNSimulations] = useState(10000);
@@ -36,25 +77,26 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
 
   const [error, setError] = useState<string | null>(null);
 
-  const customTickers = useMemo(
-    () =>
-      customInput
-        .split(",")
-        .map((t) => t.trim().toUpperCase())
-        .filter(Boolean),
-    [customInput],
-  );
-
   const presetMeta = PRESETS[preset];
   const isCustomOnly = preset === "custom";
   const isHeavy = HEAVY_PRESETS.includes(preset);
+
+  function addCustomTicker(t: string) {
+    const up = t.trim().toUpperCase();
+    if (!up) return;
+    setCustomTickers((prev) => (prev.includes(up) ? prev : [...prev, up]));
+  }
+
+  function removeCustomTicker(t: string) {
+    setCustomTickers((prev) => prev.filter((x) => x !== t));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
     if (isCustomOnly && customTickers.length === 0) {
-      setError("「カスタムのみ」選択時は銘柄を1つ以上入力してください。");
+      setError("「カスタムのみ」選択時は銘柄を1つ以上追加してください。");
       return;
     }
 
@@ -93,36 +135,15 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
       onSubmit={handleSubmit}
       className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm p-6 md:p-8 flex flex-col gap-8"
     >
-      <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-        <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-900 dark:text-zinc-100">
-          <Settings className="w-4 h-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
-          設定
-        </h2>
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">入力</span>
-      </div>
-
       <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            銘柄ユニバース
-          </span>
-          <span className="num text-xs text-zinc-600 dark:text-zinc-400">
-            現在の選択:{" "}
-            <span className="text-zinc-900 dark:text-zinc-100 font-semibold">
-              {presetMeta.label}
-            </span>
-            {!isCustomOnly && (
-              <span className="text-zinc-500 dark:text-zinc-400">
-                {" "}
-                ({presetMeta.count}銘柄)
-              </span>
-            )}
-          </span>
-        </div>
-        <div className="flex flex-nowrap overflow-x-auto scrollbar-hide gap-2 -mx-1 px-1 pb-1">
+        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          銘柄ユニバース
+        </span>
+        <div className="flex flex-nowrap md:flex-wrap overflow-x-auto md:overflow-visible scrollbar-hide gap-2 -mx-1 px-1 pb-1">
           {PRESET_ORDER.map((p) => {
             const meta = PRESETS[p];
             const active = p === preset;
+            const palette = PRESET_PALETTE[p];
             const countLabel = meta.count > 0 ? ` (${meta.count})` : "";
             return (
               <button
@@ -131,10 +152,8 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
                 onClick={() => setPreset(p)}
                 aria-pressed={active}
                 className={
-                  "shrink-0 min-w-[108px] px-3.5 py-2 text-sm rounded-lg border transition-colors duration-150 " +
-                  (active
-                    ? "bg-blue-700 border-blue-700 text-white font-medium dark:bg-blue-600 dark:border-blue-600"
-                    : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-blue-300 dark:hover:border-blue-700")
+                  "shrink-0 min-w-[108px] px-3.5 py-2 text-sm font-medium rounded-lg border transition-all duration-150 " +
+                  (active ? palette.selected : palette.base)
                 }
               >
                 {meta.label}
@@ -145,22 +164,37 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
         </div>
       </section>
 
-      <Field
-        label={isCustomOnly ? "銘柄（必須）" : "追加銘柄（カスタム、任意）"}
-        hint={
-          isCustomOnly
-            ? "カンマ区切りでティッカーを入力（例: AAPL, MSFT, NVDA）"
-            : "プリセットに追加して分析したい銘柄をカンマ区切りで入力"
-        }
-      >
-        <input
-          type="text"
-          value={customInput}
-          onChange={(e) => setCustomInput(e.target.value)}
-          placeholder={isCustomOnly ? "AAPL, MSFT, NVDA" : "例: TLT, GLD"}
-          className="num w-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600"
-        />
-      </Field>
+      <section className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            {isCustomOnly ? "銘柄（必須）" : "追加銘柄（任意）"}
+          </span>
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            日本語・英語・ティッカーで検索
+          </span>
+        </div>
+        <TickerSearchBar onPick={(t) => addCustomTicker(t)} />
+        {customTickers.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {customTickers.map((t) => (
+              <span
+                key={t}
+                className="num inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300"
+              >
+                {t}
+                <button
+                  type="button"
+                  onClick={() => removeCustomTicker(t)}
+                  aria-label={`${t} を削除`}
+                  className="text-blue-600/60 hover:text-blue-700 dark:text-blue-400/70 dark:hover:text-blue-300"
+                >
+                  <X className="w-3 h-3" aria-hidden />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <Field label="期間">
@@ -178,15 +212,17 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
         </Field>
 
         <Field label="シミュレーション回数">
-          <input
-            type="number"
-            min={100}
-            max={50000}
-            step={100}
+          <select
             value={nSimulations}
             onChange={(e) => setNSimulations(Number(e.target.value))}
             className="num w-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600"
-          />
+          >
+            {SIMULATION_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
         </Field>
       </div>
 
@@ -197,7 +233,7 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
             ヘッジ資産（任意）
           </span>
           <span className="text-xs text-zinc-500 dark:text-zinc-400">
-            SMLフィルタ対象外 — 分散効果のため無条件で組み込まれます
+            SMLフィルタ対象外 — 無条件で組み込まれます
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -275,6 +311,109 @@ export default function AnalyzeForm({ onResult, loading, setLoading }: Props) {
   );
 }
 
+function TickerSearchBar({ onPick }: { onPick: (ticker: string) => void }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<TickerMatch[]>([]);
+  const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    const controller = new AbortController();
+    setSearching(true);
+    const t = setTimeout(() => {
+      searchTicker(query, controller.signal)
+        .then((r) => setResults(r.results))
+        .catch(() => {
+          /* ignore aborts + errors */
+        })
+        .finally(() => setSearching(false));
+    }, 180);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [query]);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (!wrapperRef.current) return;
+      if (!wrapperRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  function pick(m: TickerMatch) {
+    onPick(m.ticker);
+    setQuery("");
+    setResults([]);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <div className="relative">
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-500"
+          aria-hidden
+        />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder="アップル、AAPL、ゴールド…"
+          className="w-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600"
+        />
+      </div>
+      {open && query.trim().length > 0 && (
+        <ul className="absolute top-full left-0 right-0 z-20 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+          {searching && results.length === 0 && (
+            <li className="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+              検索中...
+            </li>
+          )}
+          {!searching && results.length === 0 && (
+            <li className="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+              該当する銘柄が見つかりません
+            </li>
+          )}
+          {results.map((m) => (
+            <li key={m.ticker}>
+              <button
+                type="button"
+                onClick={() => pick(m)}
+                className="w-full text-left px-3 py-2 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                    {m.japanese}
+                  </div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                    {m.english}
+                  </div>
+                </div>
+                <span className="num text-xs font-semibold text-blue-700 dark:text-blue-400 shrink-0">
+                  {m.ticker}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function Field({
   label,
   hint,
@@ -349,9 +488,7 @@ function HedgeCheckbox({
         )}
       </span>
       <span className="flex-1">{label}</span>
-      <span className="num text-xs text-zinc-500 dark:text-zinc-400">
-        {ticker}
-      </span>
+      <span className="num text-xs text-zinc-500 dark:text-zinc-400">{ticker}</span>
     </label>
   );
 }

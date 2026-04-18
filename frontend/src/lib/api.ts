@@ -3,6 +3,7 @@ import type {
   AnalyzeResponse,
   BacktestForRequest,
   BacktestForResponse,
+  TickerSearchResponse,
 } from "./types";
 
 const API_BASE =
@@ -38,4 +39,18 @@ export function backtestFor(
   request: BacktestForRequest,
 ): Promise<BacktestForResponse> {
   return postJson<BacktestForResponse>("/api/backtest_for", request);
+}
+
+export async function searchTicker(
+  query: string,
+  signal?: AbortSignal,
+): Promise<TickerSearchResponse> {
+  const q = query.trim();
+  if (!q) return { results: [] };
+  const res = await fetch(
+    `${API_BASE}/api/search_ticker?q=${encodeURIComponent(q)}`,
+    { signal },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<TickerSearchResponse>;
 }
